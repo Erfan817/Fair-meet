@@ -1,4 +1,6 @@
-#计算多个（经纬度）点的球面公平中心
+import math
+
+
 def geographic_center(points: list[tuple[float, float]]) -> tuple[float, float]:
     """
     计算多个（经纬度）点的球面公平中心。
@@ -9,7 +11,7 @@ def geographic_center(points: list[tuple[float, float]]) -> tuple[float, float]:
     返回:
         tuple[float, float]: 球面公平中心的 (经度, 纬度)。
     """
-    import math
+
 
     if not points:
         raise ValueError("点列表不能为空")
