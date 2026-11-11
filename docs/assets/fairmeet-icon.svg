@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">FairMeet icon</title>
+  <desc id="desc">Three routes from different starting points meet at one amber destination on an ocean-blue tile.</desc>
+  <rect width="256" height="256" rx="64" fill="#155E83"/>
+  <path d="M56 67H84C112 67 139 88 139 118V137" stroke="#F3F8FC" stroke-width="15" stroke-linecap="round"/>
+  <path d="M55 184H82C114 184 139 165 139 137" stroke="#86D4E4" stroke-width="15" stroke-linecap="round"/>
+  <path d="M197 67V85C197 114 174 137 145 137H139" stroke="#F3F8FC" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="56" cy="67" r="12" fill="#F3F8FC"/>
+  <circle cx="55" cy="184" r="12" fill="#86D4E4"/>
+  <circle cx="197" cy="67" r="12" fill="#F3F8FC"/>
+  <circle cx="139" cy="137" r="27" fill="#F6BC54" stroke="#155E83" stroke-width="9"/>
+  <circle cx="139" cy="137" r="7" fill="#155E83"/>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">FairMeet — Different plans. One shared journey.</title>
+  <desc id="desc">FairMeet's three-route icon beside its name on a pale blue field. Individual routes meet at one shared destination.</desc>
+  <rect width="1200" height="360" rx="24" fill="#EFF6FB"/>
+  <path d="M941 0V61C941 102 979 134 1020 134H1200M1057 360V280C1057 239 1090 207 1131 207H1200" stroke="#D7E7F1" stroke-width="2"/>
+  <circle cx="941" cy="61" r="6" fill="#D7E7F1"/>
+  <circle cx="1057" cy="280" r="6" fill="#D7E7F1"/>
+  <g transform="translate(80 80) scale(.78125)">
+    <rect width="256" height="256" rx="64" fill="#155E83"/>
+    <path d="M56 67H84C112 67 139 88 139 118V137" stroke="#F3F8FC" stroke-width="15" stroke-linecap="round"/>
+    <path d="M55 184H82C114 184 139 165 139 137" stroke="#86D4E4" stroke-width="15" stroke-linecap="round"/>
+    <path d="M197 67V85C197 114 174 137 145 137H139" stroke="#F3F8FC" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="56" cy="67" r="12" fill="#F3F8FC"/>
+    <circle cx="55" cy="184" r="12" fill="#86D4E4"/>
+    <circle cx="197" cy="67" r="12" fill="#F3F8FC"/>
+    <circle cx="139" cy="137" r="27" fill="#F6BC54" stroke="#155E83" stroke-width="9"/>
+    <circle cx="139" cy="137" r="7" fill="#155E83"/>
+  </g>
+  <text x="332" y="186" font-family="Trebuchet MS, Verdana, sans-serif" font-size="82" font-weight="700" letter-spacing="-3" fill="#155E83">FairMeet</text>
+  <text x="336" y="234" font-family="Trebuchet MS, Verdana, sans-serif" font-size="24" fill="#385D72">Different plans. One shared journey.</text>
+</svg>
