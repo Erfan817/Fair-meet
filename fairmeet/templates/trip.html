@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · 旅程空间{% endblock %}
+{% block content %}
+<h1>{{ trip.title }}</h1>
+<p class="hint">
+  目的地：{{ trip.destination }}
+  {% if trip.start_date %}· {{ trip.start_date }} 至 {{ trip.end_date }}{% endif %}
+  {% if trip.budget %}· 预算 {{ trip.budget }} 元{% endif %}
+  · 状态：{{ trip.status.value }}
+</p>
+
+{% if trip.created_by %}
+<div class="invite">
+  <strong>邀请同行者：</strong>
+  <input id="invite-url" readonly value="/join/{{ trip.invite_token }}">
+  <p class="hint">把此链接发给同行者，他们用手机打开即可加入。</p>
+</div>
+{% endif %}
+
+{% if not me %}
+<div class="warning">你还没有加入这趟旅程。请通过发起人提供的邀请链接加入后再录入需求与灵感。</div>
+{% endif %}
+
+<section class="card">
+  <h2>成员（{{ members|length }}）</h2>
+  <ul class="members">
+    {% for m in members %}
+    <li>{{ m.display_name }}{% if m.is_owner %} <span class="badge">发起人</span>{% endif %} · {{ m.status.value }}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>成员需求（{{ needs|length }}）</h2>
+  {% if needs %}
+  <ul class="needs">
+    {% for n in needs %}
+    <li><span class="kind kind-{{ n.kind.value }}">{{ n.kind.value }}</span>
+      <span class="cat">{{ n.category }}</span>：{{ n.value }}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">还没有需求。成员可添加出发地、可参加日期、预算、兴趣、饮食与行动需求。</p>
+  {% endif %}
+
+  {% if me %}
+  <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/needs">
+    <input type="hidden" name="member" value="{{ me.id }}">
+    <label>约束类型
+      <select name="kind">
+        {% for k in need_kinds %}
+        <option value="{{ k.value }}">{{ k.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>类别
+      <input name="category" required maxlength="40" placeholder="如 出发地 / 预算 / 饮食">
+    </label>
+    <label>内容
+      <input name="value" required maxlength="500" placeholder="如 我是素食 / 必须周日出发">
+    </label>
+    <button type="submit">添加需求</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>灵感箱（{{ inspirations|length }}）</h2>
+  {% if inspirations %}
+  <ul class="inspirations">
+    {% for i in inspirations %}
+    <li>
+      <strong>{{ i.title }}</strong>
+      <span class="badge">{{ i.status.value }}</span>
+      {% if i.note %}<div class="note">{{ i.note }}</div>{% endif %}
+      {% if i.source_url %}<div class="src"><a href="{{ i.source_url }}" rel="noreferrer noopener" target="_blank">{{ i.source_url }}</a></div>{% endif %}
+      {% if me %}
+      <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/inspirations/{{ i.id }}/status">
+        <input type="hidden" name="member" value="{{ me.id }}">
+        <select name="status">
+          {% for s in insp_statuses %}
+          <option value="{{ s.value }}" {% if s.value == i.status.value %}selected{% endif %}>{{ s.value }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">更新状态</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">还没有灵感。可以手动记录地点、粘贴链接，或写一段攻略描述。</p>
+  {% endif %}
+
+  {% if me %}
+  <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/inspirations">
+    <input type="hidden" name="member" value="{{ me.id }}">
+    <label>标题
+      <input name="title" required maxlength="200" placeholder="如 宽窄巷子 / 某篇攻略">
+    </label>
+    <label>地点名（可选，加入地点库）
+      <input name="place_name" maxlength="120" placeholder="如 宽窄巷子">
+    </label>
+    <label>来源链接（可选）
+      <input name="source_url" maxlength="500" placeholder="粘贴小红书/大众点评等链接">
+    </label>
+    <label>补充描述（可选）
+      <textarea name="note" maxlength="2000" rows="2" placeholder="为什么要去 / 注意事项"></textarea>
+    </label>
+    <button type="submit">放入灵感箱</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>地点库（{{ places|length }}）</h2>
+  {% if places %}
+  <ul class="places">
+    {% for p in places %}
+    <li>{{ p.name }}{% if p.category %} · {{ p.category }}{% endif %}{% if p.source %} · 来源：{{ p.source }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">灵感中带地点名时会自动进入地点库（阶段 B 不依赖高德，坐标可后续补齐）。</p>
+  {% endif %}
+</section>
+
+<script>
+  (function () {
+    var el = document.getElementById('invite-url');
+    if (el) { el.value = window.location.origin + el.value; el.addEventListener('click', function(){ el.select(); }); }
+  })();
+</script>
+{% endblock %}

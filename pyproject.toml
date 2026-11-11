@@ -1,0 +1,28 @@
+[project]
+name = "fairmeet"
+version = "0.1.0"
+description = "FairMeet — AI 协助的多人共享出行规划（完整出行规划主线）"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI 惯用 `Depends(...)`/`Form(...)` 作为参数默认值，B008 属已知误报
+"fairmeet/app.py" = ["B008"]
+# 以下为阶段 A 前既有的未提交文件，保持内容原样（不因 lint 改动既有改动）：
+"fairmeet/center.py" = ["W292"]
+"fairmeet/config.py" = ["I001", "W292"]
+"fairmeet/geocode.py" = ["I001", "W292"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["fastapi", "pydantic", "starlette", "jinja2", "httpx", "dotenv", "pytest", "respx"]

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · 行程计划{% endblock %}
+{% block content %}
+<h1>{{ trip.title }} · 行程计划</h1>
+<p class="hint">
+  <a href="/trip/{{ trip.id }}?member={{ me.id if me else '' }}">← 返回旅程空间</a> ·
+  <a href="/trip/{{ trip.id }}/map">地图/时间线视图</a> ·
+  目的地：{{ trip.destination }}
+</p>
+
+{% if check.conflicts %}
+<section class="card">
+  <h2>检查结果 {% if not check.ok %}<span class="badge badge-hard">存在硬约束冲突</span>{% endif %}</h2>
+  <ul class="conflicts">
+    {% for c in check.conflicts %}
+    <li class="conflict-{{ c.severity }}">
+      <span class="kind {% if c.severity == 'hard' %}kind-hard{% elif c.severity=='warning' %}kind-preference{% endif %}">{{ c.severity }}</span>
+      {{ c.message }}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% else %}
+<section class="card"><h2>检查结果</h2><p class="hint">未发现冲突或风险。</p></section>
+{% endif %}
+
+<section class="card">
+  <h2>预算</h2>
+  <p>预算上限：{{ budget.trip_budget if budget.trip_budget is not none else '未设置' }} 元 ·
+     估算合计：<strong>{{ budget.estimated_total }}</strong> 元
+     {% if budget.over_budget %}<span class="badge badge-hard">超预算</span>{% endif %}</p>
+  <p class="hint">按来源分类：{% for k, v in budget.by_provenance.items() %}{{ k }}={{ v }} 元 {% endfor %}{% if budget.note %}<br>{{ budget.note }}{% endif %}</p>
+</section>
+
+{% for d in days %}
+<section class="card">
+  <h2>第 {{ d.day_index }} 天{% if d.date %} · {{ d.date }}{% endif %}{% if d.title %} · {{ d.title }}{% endif %}</h2>
+  {% set day_items = items | selectattr('day_id', 'equalto', d.id) | list %}
+  {% if day_items %}
+  <ol class="timeline">
+    {% for it in day_items %}
+    <li>
+      <div class="timeline-head">
+        <span class="time">{{ it.start_time or '--:--' }}{% if it.end_time %}–{{ it.end_time }}{% endif %}</span>
+        <span class="badge">{{ it.item_type.value }}</span>
+        <span class="badge status-{{ it.status.value }}">{{ it.status.value }}</span>
+      </div>
+      <div class="timeline-title">{{ it.title }}{% if it.place_id %} · 📍{% endif %}</div>
+      {% if it.note %}<div class="note">{{ it.note }}</div>{% endif %}
+      {% if it.cost is not none %}<div class="note">费用 {{ it.cost }} 元 · 来源：{{ it.cost_provenance.kind.value }}</div>{% endif %}
+      {% if me %}
+      <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/items/{{ it.id }}/status">
+        <input type="hidden" name="member" value="{{ me.id }}">
+        <select name="status">
+          {% for s in item_statuses %}<option value="{{ s.value }}" {% if s.value==it.status.value %}selected{% endif %}>{{ s.value }}</option>{% endfor %}
+        </select>
+        <button type="submit">改状态</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="hint">这一天还没有安排。</p>
+  {% endif %}
+
+  {% if me %}
+  <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/days/{{ d.id }}/items">
+    <input type="hidden" name="member" value="{{ me.id }}">
+    <div class="row">
+      <label>类型
+        <select name="item_type">{% for t in item_types %}<option value="{{ t.value }}">{{ t.value }}</option>{% endfor %}</select>
+      </label>
+      <label>标题<input name="title" required maxlength="200" placeholder="如 宽窄巷子 / 午餐"></label>
+    </div>
+    <label>关联地点（可选）
+      <select name="place_id"><option value="">（不关联）</option>{% for p in places %}<option value="{{ p.id }}">{{ p.name }}{% if p.lng is none %}（无坐标）{% endif %}</option>{% endfor %}</select>
+    </label>
+    <div class="row">
+      <label>开始<input name="start_time" placeholder="09:00" maxlength="5"></label>
+      <label>结束<input name="end_time" placeholder="11:00" maxlength="5"></label>
+    </div>
+    <div class="row">
+      <label>停留(分钟)<input name="stay_minutes" type="number" min="0" placeholder="可选"></label>
+      <label>费用(元)<input name="cost" type="number" min="0" step="1" placeholder="可选"></label>
+    </div>
+    <label>费用来源
+      <select name="cost_provenance_kind">
+        <option value="estimated">estimated（估算）</option>
+        <option value="verified">verified（已核实）</option>
+        <option value="external">external（外部数据）</option>
+        <option value="unknown">unknown（未知）</option>
+      </select>
+    </label>
+    <label>备注<textarea name="note" rows="2" maxlength="2000" placeholder="可选"></textarea></label>
+    <button type="submit">加入当天行程</button>
+  </form>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if me %}
+<section class="card">
+  <h2>新增一天</h2>
+  <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/days">
+    <input type="hidden" name="member" value="{{ me.id }}">
+    <div class="row">
+      <label>第几天<input name="day_index" type="number" min="1" value="{{ days|length + 1 }}" required></label>
+      <label>日期<input name="date" type="date"></label>
+    </div>
+    <label>当天主题<input name="title" maxlength="120" placeholder="可选，如 市区漫步"></label>
+    <button type="submit">添加一天</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

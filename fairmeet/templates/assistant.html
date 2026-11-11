@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · AI 协调助手{% endblock %}
+{% block content %}
+<h1>{{ trip.title }} · AI 协调助手</h1>
+<p class="hint">
+  <a href="/trip/{{ trip.id }}?member={{ me.id if me else '' }}">← 旅程空间</a> ·
+  <a href="/trip/{{ trip.id }}/plan?member={{ me.id if me else '' }}">行程计划</a>
+</p>
+
+{% if not me %}
+<div class="warning">请通过邀请链接加入后再使用协调助手。</div>
+{% else %}
+<section class="card">
+  <h2>向助手描述需求 / 提问</h2>
+  <form id="ask-form">
+    <textarea id="ask-msg" rows="3" placeholder="例如：帮我看看现在有没有冲突 / 帮我加一个第 2 天的午餐"></textarea>
+    <button type="submit">发送</button>
+  </form>
+  <div id="ask-result" style="margin-top:.8rem"></div>
+</section>
+
+<section class="card">
+  <h2>待确认提案（{{ proposals|length }}）</h2>
+  {% if proposals %}
+  <ul id="proposal-list">
+    {% for p in proposals %}
+    <li>
+      <strong>{{ p.summary }}</strong> · 状态：{{ p.status }}
+      {% if p.requires_confirmation %}<span class="badge badge-hard">需确认</span>{% endif %}
+      <ul>
+        {% for imp in p.impacts %}
+        <li>
+          <span class="kind">{{ imp.change_kind.value }}</span>
+          {% for d in imp.diffs %}<div class="note">{{ d.field }}: {{ d.before or '（空）' }} → {{ d.after or '（空）' }}</div>{% endfor %}
+          {% for n in imp.impact_notes %}<div class="note">{{ n }}</div>{% endfor %}
+          {% if imp.blocked_reason %}<div class="note" style="color:#991b1b">不可执行：{{ imp.blocked_reason }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% if p.status == 'pending' %}
+      <button onclick="confirmProposal('{{ p.id }}')">确认执行</button>
+      <button onclick="rejectProposal('{{ p.id }}')" style="background:#64748b">拒绝</button>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">暂无提案。向助手提出修改请求后，会先生成待确认提案。</p>
+  {% endif %}
+</section>
+
+<script>
+  var TRIP = {{ trip.id | tojson }};
+  var MEMBER = {{ me.id | tojson }};
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+  document.getElementById('ask-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('ask-msg').value.trim();
+    if (!msg) return;
+    var box = document.getElementById('ask-result');
+    box.textContent = '处理中…';
+    fetch('/api/trips/' + TRIP + '/ai/chat?member_id=' + encodeURIComponent(MEMBER), {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: msg})
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      var html = '<div class="card"><strong>助手：</strong><div style="white-space:pre-wrap">' + esc(d.reply) + '</div>';
+      if (d.clarification_questions && d.clarification_questions.length) {
+        html += '<div class="note">需要补充：' + d.clarification_questions.map(esc).join('；') + '</div>';
+      }
+      if (d.proposals && d.proposals.length) {
+        html += '<div class="note">已生成 ' + d.proposals.length + ' 个待确认提案，请在上方确认。</div>';
+      }
+      if (d.sources && d.sources.length) {
+        html += '<div class="note">来源：' + d.sources.map(function(s){return esc(s.label) + '(' + esc(s.kind) + ')';}).join('，') + '</div>';
+      }
+      html += '</div>';
+      box.innerHTML = html;
+      if (d.proposals && d.proposals.length) { setTimeout(function(){ location.reload(); }, 600); }
+    }).catch(function (err) { box.textContent = '出错：' + err; });
+  });
+
+  function confirmProposal(id) {
+    fetch('/api/trips/' + TRIP + '/proposals/' + id + '/confirm?member_id=' + encodeURIComponent(MEMBER), {method: 'POST'})
+      .then(function (r) { return r.json(); }).then(function (d) {
+        alert('已执行：' + JSON.stringify(d.executed) + (d.skipped && d.skipped.length ? ('\n跳过：' + d.skipped.length) : ''));
+        location.reload();
+      });
+  }
+  function rejectProposal(id) {
+    fetch('/api/trips/' + TRIP + '/proposals/' + id + '/reject?member_id=' + encodeURIComponent(MEMBER), {method: 'POST'})
+      .then(function () { location.reload(); });
+  }
+</script>
+{% endif %}
+{% endblock %}

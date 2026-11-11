@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · 变更历史{% endblock %}
+{% block content %}
+<h1>{{ trip.title }} · 变更历史</h1>
+<p class="hint">
+  <a href="/trip/{{ trip.id }}">旅程空间</a> ·
+  <a href="/trip/{{ trip.id }}/summary">出发前摘要</a> ·
+  <a href="/trip/{{ trip.id }}/plan">行程计划</a>
+</p>
+
+<section class="card">
+  <h2>最近变更（{{ entries | length }}）</h2>
+  {% if entries %}
+  <ul>
+    {% for e in entries %}
+    <li>
+      <span class="badge">{{ e.change_type.value }}</span>
+      {{ e.summary }}
+      <span class="note">· {{ e.created_at }}</span>
+      {% for d in e.diffs %}
+      <div class="note">{{ d.field }}: {{ d.before or '（空）' }} → {{ d.after or '（空）' }}</div>
+      {% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="hint">暂无变更记录。</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>版本快照（{{ revisions | length }}）</h2>
+  {% if revisions %}
+  <ul>
+    {% for r in revisions %}
+    <li>{{ r.label }} <span class="note">· {{ r.created_at }} · 条目 {{ r.snapshot['items'] | length }} 个</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="hint">暂无快照。</p>{% endif %}
+</section>
+{% endblock %}

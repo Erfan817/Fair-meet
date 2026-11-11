@@ -1,0 +1,30 @@
+:root { --bg:#f5f6f8; --card:#fff; --ink:#1f2328; --muted:#667085; --line:#e4e7ec; --accent:#2563eb; --warn:#b45309; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; }
+.topbar { display:flex; align-items:baseline; gap:.6rem; padding:.8rem 1rem; background:#111827; color:#fff; }
+.brand { color:#fff; font-weight:700; text-decoration:none; font-size:1.1rem; }
+.tag { color:#9ca3af; font-size:.8rem; }
+.container { max-width:720px; margin:0 auto; padding:1rem; }
+h1 { font-size:1.35rem; }
+h2 { font-size:1.05rem; margin:.2rem 0 .8rem; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; margin-bottom:1rem; }
+label { display:block; margin-bottom:.7rem; font-size:.9rem; color:var(--muted); }
+input, select, textarea { width:100%; padding:.55rem; margin-top:.25rem; border:1px solid var(--line); border-radius:8px; font-size:1rem; background:#fff; color:var(--ink); }
+.row { display:flex; gap:.7rem; }
+.row label { flex:1; }
+button, .button { display:inline-block; margin-top:.4rem; padding:.6rem .9rem; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:.95rem; cursor:pointer; text-decoration:none; }
+.hint { color:var(--muted); font-size:.85rem; }
+.warning { background:#fff7ed; border:1px solid #fed7aa; color:var(--warn); padding:.7rem .9rem; border-radius:10px; margin-bottom:1rem; font-size:.9rem; }
+.invite { background:#eff6ff; border:1px solid #bfdbfe; padding:.7rem .9rem; border-radius:10px; margin-bottom:1rem; }
+ul { list-style:none; padding-left:0; margin:0; }
+li { padding:.45rem 0; border-bottom:1px solid var(--line); }
+li:last-child { border-bottom:none; }
+.badge { display:inline-block; font-size:.72rem; padding:.1rem .45rem; border-radius:999px; background:#eef2ff; color:#3730a3; }
+.kind { display:inline-block; font-size:.72rem; padding:.05rem .4rem; border-radius:6px; background:#f1f5f9; color:#334155; }
+.kind-hard { background:#fee2e2; color:#991b1b; }
+.kind-preference { background:#e0f2fe; color:#075985; }
+.kind-negotiable { background:#f3f4f6; color:#374151; }
+.inline-form { margin-top:.8rem; padding-top:.8rem; border-top:1px dashed var(--line); }
+.note, .src { font-size:.85rem; color:var(--muted); }
+.src a { color:var(--accent); word-break:break-all; }
+.footer { text-align:center; color:var(--muted); font-size:.78rem; padding:1.2rem; }

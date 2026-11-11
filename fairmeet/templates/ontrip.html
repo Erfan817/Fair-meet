@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · 途中查看{% endblock %}
+{% block content %}
+<h1>{{ trip.title }} · 途中查看</h1>
+<p class="hint">
+  <a href="/trip/{{ trip.id }}">旅程空间</a> ·
+  <a href="/trip/{{ trip.id }}/summary">出发前摘要</a> ·
+  <a href="/trip/{{ trip.id }}/plan?member={{ me.id if me else '' }}">行程计划</a>
+</p>
+{% if not me %}<div class="warning">建议通过邀请链接进入以使用完整协作。</div>{% endif %}
+
+{% if check.conflicts %}
+<section class="card">
+  <h2>需要注意</h2>
+  <ul>
+    {% for c in check.conflicts %}
+    <li class="conflict-{{ c.severity }}"><span class="kind {% if c.severity=='hard' %}kind-hard{% endif %}">{{ c.severity }}</span> {{ c.message }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% for d in days %}
+{% set day_items = items | selectattr('day_id', 'equalto', d.id) | sort(attribute='sort_order') | list %}
+<section class="card">
+  <h2>第 {{ d.day_index }} 天{% if d.date %} · {{ d.date }}{% endif %}{% if d.title %} · {{ d.title }}{% endif %}</h2>
+  {% if day_items %}
+  <ol class="timeline">
+    {% for it in day_items %}
+    <li>
+      <span class="time">{{ it.start_time or '--:--' }}{% if it.end_time %}–{{ it.end_time }}{% endif %}</span>
+      <span class="badge">{{ it.item_type.value }}</span>
+      <span class="badge status-{{ it.status.value }}">{{ it.status.value }}</span>
+      <strong>{{ it.title }}</strong>
+      {% if it.note %}<div class="note">{{ it.note }}</div>{% endif %}
+      {% if me and it.status.value in ['confirmed','done'] %}
+      <div class="note">该条目已{{ '确认' if it.status.value=='confirmed' else '完成' }}；如需更改请在行程计划中提出，系统会展示差异并等待确认。</div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="hint">无安排</p>{% endif %}
+</section>
+{% endfor %}
+{% endblock %}

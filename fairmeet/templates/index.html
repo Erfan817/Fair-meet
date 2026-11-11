@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}FairMeet · 创建旅程{% endblock %}
+{% block content %}
+<h1>创建一趟旅程</h1>
+<p class="hint">召集同行者，收集大家的灵感与需求，一起形成共享旅程计划。</p>
+
+<form class="card" method="post" action="/ui/trips">
+  <label>旅程标题
+    <input name="title" required maxlength="120" placeholder="例如：成都三日游">
+  </label>
+  <label>目的地
+    <input name="destination" value="成都" maxlength="60">
+  </label>
+  <label>发起人昵称
+    <input name="owner_name" value="发起人" maxlength="60">
+  </label>
+  <div class="row">
+    <label>开始日期
+      <input type="date" name="start_date">
+    </label>
+    <label>结束日期
+      <input type="date" name="end_date">
+    </label>
+  </div>
+  <label>预算（元，可留空）
+    <input type="number" name="budget" min="0" step="1" placeholder="可留空">
+  </label>
+  <button type="submit">创建旅程并生成邀请链接</button>
+</form>
+{% endblock %}

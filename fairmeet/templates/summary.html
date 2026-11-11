@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · 出发前摘要{% endblock %}
+{% block content %}
+<h1>{{ summary.trip.title }} · 出发前摘要</h1>
+<p class="hint">目的地：{{ summary.trip.destination }}{% if summary.trip.start_date %} · {{ summary.trip.start_date }} 至 {{ summary.trip.end_date }}{% endif %} · 状态：{{ summary.trip.status }}</p>
+<p class="hint">
+  <a href="/trip/{{ trip.id }}">旅程空间</a> ·
+  <a href="/trip/{{ trip.id }}/plan">行程计划</a> ·
+  <a href="/trip/{{ trip.id }}/ontrip">途中查看</a> ·
+  <a href="/trip/{{ trip.id }}/history">变更历史</a>
+</p>
+
+<section class="card">
+  <h2>成员</h2>
+  <p>{{ summary.members | join('、') }}</p>
+</section>
+
+<section class="card">
+  <h2>预算与检查</h2>
+  <p>预算上限：{{ summary.budget.trip_budget if summary.budget.trip_budget is not none else '未设置' }} 元 ·
+     估算合计：<strong>{{ summary.budget.estimated_total }}</strong> 元
+     {% if summary.budget.over_budget %}<span class="badge badge-hard">超预算</span>{% endif %}</p>
+  <p class="hint">{% for k, v in summary.budget.by_provenance.items() %}{{ k }}={{ v }} 元 {% endfor %}{% if summary.budget.note %}<br>{{ summary.budget.note }}{% endif %}</p>
+  {% if summary.check.conflicts %}
+  <ul>
+    {% for c in summary.check.conflicts %}
+    <li><span class="kind {% if c.severity=='hard' %}kind-hard{% elif c.severity=='warning' %}kind-preference{% endif %}">{{ c.severity }}</span> {{ c.message }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="hint">未发现冲突或风险。</p>{% endif %}
+</section>
+
+{% for d in summary.days %}
+<section class="card">
+  <h2>第 {{ d.day_index }} 天{% if d.date %} · {{ d.date }}{% endif %}{% if d.title %} · {{ d.title }}{% endif %}</h2>
+  {% if d['items'] %}
+  <ol class="timeline">
+    {% for it in d['items'] %}
+    <li>
+      <span class="time">{{ it.start_time or '--:--' }}{% if it.end_time %}–{{ it.end_time }}{% endif %}</span>
+      <span class="badge">{{ it.item_type }}</span>
+      <span class="badge status-{{ it.status }}">{{ it.status }}</span>
+      {{ it.title }}
+      {% if it.cost is not none %}<span class="note">· {{ it.cost }} 元（{{ it.cost_provenance }}）</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="hint">无安排</p>{% endif %}
+</section>
+{% endfor %}
+{% endblock %}

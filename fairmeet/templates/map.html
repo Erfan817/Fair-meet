@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.title }} · 时间线与地图{% endblock %}
+{% block content %}
+<h1>{{ trip.title }} · 时间线与地图</h1>
+<p class="hint">
+  <a href="/trip/{{ trip.id }}/plan">← 返回行程编辑</a> · 目的地：{{ trip.destination }}
+</p>
+
+<section class="card">
+  <h2>地图（离线示意图）</h2>
+  <p class="hint">阶段 C 使用离线坐标示意图；真实高德 JS 地图需核实 Key 类型/配额后再接入。无坐标的点会标注「无坐标」。</p>
+  <div id="map" class="mapbox"><svg id="mapsvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <p id="map-status" class="hint"></p>
+</section>
+
+<section class="card">
+  <h2>逐日时间线</h2>
+  <div id="timeline"></div>
+</section>
+
+<style>
+.mapbox { width:100%; height:280px; background:#eef2f7; border-radius:12px; border:1px solid var(--line); }
+#mapsvg { width:100%; height:100%; }
+.tl-day { margin-bottom:1rem; }
+.tl-day h3 { font-size:.95rem; margin:.2rem 0; }
+.tl-item { display:flex; gap:.5rem; padding:.3rem 0; border-bottom:1px dashed var(--line); font-size:.9rem; }
+.tl-time { color:var(--muted); min-width:5.5rem; }
+</style>
+
+<script>
+(function () {
+  var tripId = {{ trip.id | tojson }};
+  fetch('/api/trips/' + tripId + '/map-data').then(function (r) { return r.json(); }).then(function (data) {
+    var pts = [];
+    data.days.forEach(function (d) {
+      d.items.forEach(function (it) {
+        if (it.place && it.place.lng != null && it.place.lat != null) {
+          pts.push({lng: it.place.lng, lat: it.place.lat, label: it.title, day: d.day_index});
+        }
+      });
+    });
+
+    var svg = document.getElementById('mapsvg');
+    var status = document.getElementById('map-status');
+    if (pts.length === 0) {
+      status.textContent = '暂无可在地图上显示的坐标点（地点未设置坐标）。';
+    } else {
+      var lngs = pts.map(function (p) { return p.lng; });
+      var lats = pts.map(function (p) { return p.lat; });
+      var minLng = Math.min.apply(null, lngs), maxLng = Math.max.apply(null, lngs);
+      var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+      var spanLng = (maxLng - minLng) || 1e-3, spanLat = (maxLat - minLat) || 1e-3;
+      var NS = 'http://www.w3.org/2000/svg';
+      // 连线（按天顺序）
+      for (var i = 1; i < pts.length; i++) {
+        if (pts[i].day === pts[i-1].day) {
+          var ln = document.createElementNS(NS, 'line');
+          ln.setAttribute('x1', ((pts[i-1].lng - minLng) / spanLng) * 80 + 10);
+          ln.setAttribute('y1', 90 - ((pts[i-1].lat - minLat) / spanLat) * 80);
+          ln.setAttribute('x2', ((pts[i].lng - minLng) / spanLng) * 80 + 10);
+          ln.setAttribute('y2', 90 - ((pts[i].lat - minLat) / spanLat) * 80);
+          ln.setAttribute('stroke', '#93c5fd'); ln.setAttribute('stroke-width', '0.6');
+          svg.appendChild(ln);
+        }
+      }
+      pts.forEach(function (p) {
+        var c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', ((p.lng - minLng) / spanLng) * 80 + 10);
+        c.setAttribute('cy', 90 - ((p.lat - minLat) / spanLat) * 80);
+        c.setAttribute('r', '1.6'); c.setAttribute('fill', '#2563eb');
+        var t = document.createElementNS(NS, 'title');
+        t.textContent = 'D' + p.day + ' · ' + p.label;
+        c.appendChild(t); svg.appendChild(c);
+      });
+      status.textContent = '共 ' + pts.length + ' 个坐标点（有坐标地点 ' + data.places_with_coords + ' 个）。';
+    }
+
+    var tl = document.getElementById('timeline');
+    if (data.days.length === 0) { tl.innerHTML = '<p class="hint">还没有行程。</p>'; }
+    data.days.forEach(function (d) {
+      var box = document.createElement('div'); box.className = 'tl-day';
+      var h = document.createElement('h3'); h.textContent = '第 ' + d.day_index + ' 天' + (d.date ? ' · ' + d.date : '') + (d.title ? ' · ' + d.title : '');
+      box.appendChild(h);
+      if (d.items.length === 0) { var e = document.createElement('p'); e.className='hint'; e.textContent='无安排'; box.appendChild(e); }
+      d.items.forEach(function (it) {
+        var row = document.createElement('div'); row.className = 'tl-item';
+        var time = document.createElement('span'); time.className='tl-time'; time.textContent = it.title;
+        var meta = document.createElement('span'); meta.textContent = '[' + it.item_type + '] ' + it.status + (it.place ? ' · 📍' + it.place.name : ' · 无坐标');
+        row.appendChild(time); row.appendChild(meta); box.appendChild(row);
+      });
+      tl.appendChild(box);
+    });
+  }).catch(function (e) {
+    document.getElementById('map-status').textContent = '加载地图数据失败：' + e;
+  });
+})();
+</script>
+{% endblock %}
