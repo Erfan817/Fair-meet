@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from fairmeet.agent import (
     ERR_CONFIRMATION_REQUIRES_MEMBER,
     AgentError,
+    AgentProposalCreate,
     AgentService,
     DelegationCreate,
 )
@@ -124,6 +125,31 @@ def install_agent_routes(app: FastAPI, agents: AgentService) -> None:
         try:
             delegation = agents.resolve(_bearer_token(request))
             return agents.submit_inspiration(delegation, payload).model_dump(mode="json")
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
+
+    # ---- agent 提案（G 阶段） ----
+    @app.post("/api/agent/proposals")
+    def agent_submit_proposal(payload: AgentProposalCreate, request: Request):
+        try:
+            delegation = agents.resolve(_bearer_token(request))
+            return agents.submit_proposal(delegation, payload)
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
+
+    @app.get("/api/agent/proposals")
+    def agent_list_proposals(request: Request, status: str | None = None):
+        try:
+            delegation = agents.resolve(_bearer_token(request))
+            return agents.list_proposals(delegation, status)
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
+
+    @app.get("/api/agent/proposals/{proposal_id}")
+    def agent_get_proposal(proposal_id: str, request: Request):
+        try:
+            delegation = agents.resolve(_bearer_token(request))
+            return agents.get_proposal(delegation, proposal_id).model_dump(mode="json")
         except Exception as exc:  # noqa: BLE001
             return _error_response(exc)
 

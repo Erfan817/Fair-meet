@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Callable, TextIO
 
@@ -66,6 +67,55 @@ TOOLS: list[dict[str, Any]] = [
                 "place_name": {"type": "string"},
             },
             "required": ["title"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "fairmeet_submit_proposal",
+        "description": (
+            "提交一份待确认的修改提案（白名单操作）。必须带 expected_revision（来自旅程上下文）；"
+            "行程已变化时返回 revision_conflict。提案默认等待成员确认；"
+            "只有成员预先授权的追加类、限额内、无硬约束提案才可能自动生效。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "summary": {"type": "string"},
+                "expected_revision": {"type": "string"},
+                "operations": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": [
+                                    "add_need",
+                                    "add_inspiration",
+                                    "add_place",
+                                    "add_day",
+                                    "add_item",
+                                    "update_item",
+                                    "set_item_status",
+                                ],
+                            }
+                        },
+                        "required": ["op"],
+                    },
+                },
+            },
+            "required": ["summary", "expected_revision", "operations"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "fairmeet_list_proposals",
+        "description": "列出当前旅程的修改提案（可按 status 过滤：pending / confirmed / rejected）。",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"status": {"type": "string", "enum": ["pending", "confirmed", "rejected"]}},
             "additionalProperties": False,
         },
     },
@@ -131,6 +181,25 @@ class AgentHttpClient:
         payload = {k: v for k, v in fields.items() if v is not None}
         return self._request("POST", "/api/agent/inspirations", payload)
 
+    def submit_proposal(
+        self, summary: str, expected_revision: str, operations: list[dict]
+    ) -> Any:
+        return self._request(
+            "POST",
+            "/api/agent/proposals",
+            {
+                "summary": summary,
+                "expected_revision": expected_revision,
+                "operations": operations,
+            },
+        )
+
+    def list_proposals(self, status: str | None = None) -> Any:
+        path = "/api/agent/proposals"
+        if status:
+            path += "?status=" + urllib.parse.quote(status)
+        return self._request("GET", path)
+
 
 def _result(msg_id: Any, result: Any) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": msg_id, "result": result}
@@ -176,6 +245,16 @@ class MCPServer:
                 source=args.get("source"),
                 place_name=args.get("place_name"),
             )
+        if name == "fairmeet_submit_proposal":
+            _require(args, "summary", "expected_revision")
+            operations = args.get("operations")
+            if not isinstance(operations, list) or not operations:
+                raise ToolError("operations 必须是非空数组", "invalid_arguments")
+            return self.client.submit_proposal(
+                str(args["summary"]), str(args["expected_revision"]), operations
+            )
+        if name == "fairmeet_list_proposals":
+            return self.client.list_proposals(args.get("status"))
         raise ToolError(f"未知工具：{name}", "unknown_tool")
 
     def handle(self, message: Any) -> Any:

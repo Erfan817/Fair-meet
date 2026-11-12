@@ -255,7 +255,9 @@ AuditEntry        delegation_id + action + proposal_id + revision + created_at
 
   以上 DoD 由 `tests/test_agent_api.py` 与 `tests/test_mcp.py` 覆盖（含真实 uvicorn 服务上的 MCP stdio 走查）。
 
-### G · 受控写入（提案 + 审计）
+### G · 受控写入（提案 + 审计）— ✅ 已实现（2026-11-12）
+
+> 实现与用法见 [Agent 接入说明](agent-access.md) §4「提案与并发控制」「自动确认」。
 
 - **范围**：agent 创建/补充提案；`expected_revision` 并发控制；确认人校验；审计记录；可选的限定范围自动确认（默认关闭）。
 - **DoD**：
@@ -263,6 +265,8 @@ AuditEntry        delegation_id + action + proposal_id + revision + created_at
   - 版本过期返回冲突码，不覆盖他人改动；
   - 确认动作只接受成员身份；自动确认的所有越界情形均退回人工；
   - 审计可回答「谁（哪个 agent 代表谁）在何时改了什么」。
+
+  以上 DoD 由 `tests/test_agent_proposals.py` 覆盖；自动确认按「只追加、限额内、无硬约束、版本未变」实现，任一越界都退回人工。
 
 ### H · 原生场景与多方协商
 

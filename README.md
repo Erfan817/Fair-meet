@@ -32,7 +32,7 @@
 
 **FairMeet 是一个 AI 协助的多人共享出行规划应用**：让同行者一起收集灵感、表达需求、讨论安排，把零散想法整理成可编辑的逐日行程。出发前核对预算与冲突，途中有变化时，调整受影响的安排，而不是从头再来。
 
-> **项目状态**：A–E 阶段的原型主流程已实现，F 阶段（agent 委托与 MCP 接入）为实验性实现，当前仍是早期开发版本，适合本地体验与功能验证，**不是可直接公网部署的生产服务**。首轮验证场景为成都 3–5 人、2–3 天的国内游。
+> **项目状态**：A–E 阶段的原型主流程已实现，F–G 阶段（agent 委托、提案与 MCP 接入）为实验性实现，当前仍是早期开发版本，适合本地体验与功能验证，**不是可直接公网部署的生产服务**。首轮验证场景为成都 3–5 人、2–3 天的国内游。
 
 ## 为什么不是又一个 AI 行程助手
 
@@ -200,9 +200,9 @@ AI 的职责是协助解释、整理与提出变更，**不是直接替所有人
 
 这些机制降低误改风险，但不代表模型输出、旅行建议或外部数据一定正确。出发前仍需核实营业时间、票务、交通和个人需求。
 
-## 接入 agent（F 阶段，实验性）
+## 接入 agent（F–G 阶段，实验性）
 
-成员可以把自己的 agent 接进同一个旅程：它读旅程上下文、提交需求与灵感，但**不能声明硬约束、不能确认提案**——确认权仍属于人。
+成员可以把自己的 agent 接进同一个旅程：它读旅程上下文、提交需求、灵感与待确认提案，但**不能声明硬约束、不能确认提案**——确认权仍属于人。
 
 1. 成员创建委托，令牌只返回一次：
 
@@ -210,11 +210,11 @@ AI 的职责是协助解释、整理与提出变更，**不是直接替所有人
 curl -X POST "http://127.0.0.1:8000/api/trips/<trip_id>/agent-delegations?member_id=<member_id>" -H "Content-Type: application/json" -d '{"agent_name":"my-agent","expires_in_hours":168}'
 ```
 
-2. agent 用 `Authorization: Bearer fm_agent_...` 调用 `GET /api/agent/trip`、`GET /api/agent/checks`、`POST /api/agent/needs`、`POST /api/agent/inspirations`。
+2. agent 用 `Authorization: Bearer fm_agent_...` 调用 `GET /api/agent/trip`、`GET /api/agent/checks`、`POST /api/agent/needs`、`POST /api/agent/inspirations`、`POST /api/agent/proposals`。提案必须携带上下文里的 `expected_revision`，默认等待成员确认；只有成员事先开启的「只追加、限额内、无硬约束」范围才可能自动生效。
 3. 通过 MCP 接入：`python -m fairmeet.mcp`，设置 `FAIRMEET_BASE_URL` 与 `FAIRMEET_AGENT_TOKEN`。
 4. 撤销：`DELETE /api/trips/<trip_id>/agent-delegations/<delegation_id>?member_id=<member_id>`。
 
-错误统一为 `{"error": {"code", "message", "details"}}`；硬约束返回 `hard_constraint_requires_member`，无来源灵感返回 `source_required`。上下文默认脱敏他人硬约束，所有 agent 写入都进审计。接口、作用域、MCP 配置与限制见 [agent 接入说明](docs/plan/agent-access.md)。
+错误统一为 `{"error": {"code", "message", "details"}}`；硬约束返回 `hard_constraint_requires_member`，无来源灵感返回 `source_required`，行程已变化返回 `revision_conflict`。上下文默认脱敏他人硬约束，所有 agent 写入都进审计。接口、作用域、自动确认规则、MCP 配置与限制见 [agent 接入说明](docs/plan/agent-access.md)。
 
 ## 技术与工程结构
 
@@ -288,7 +288,7 @@ docs/
 
 ## 开发进度与边界
 
-A–E 是原型工程的推进阶段，不代表生产就绪等级。
+A–G 是原型工程的推进阶段，不代表生产就绪等级。
 
 | 阶段 | 交付范围 | 当前状态 |
 | --- | --- | --- |
@@ -298,8 +298,9 @@ A–E 是原型工程的推进阶段，不代表生产就绪等级。
 | D · AI 协调 | 结构化输出、受控工具、提案确认与来源管理 | 已实现 |
 | E · 带着出发 | 摘要、途中查看、变更历史、快照与局部重排 | 已实现 |
 | F · 被调用 | agent 委托令牌、只读上下文与受控写入、审计、MCP 适配层 | 已实现（实验性） |
+| G · 受控写入 | agent 提案、`expected_revision` 并发控制、限定范围自动确认、审计 | 已实现（实验性） |
 
-**尚未提供：**生产级账户与访问控制、委托审批界面与限流配额、agent 提案写入（G 阶段）、高德 JS 地图底图、灵感链接自动解析、WebSocket 实时协作、版本一键回滚、行程导出与离线缓存、预订或支付交易。
+**尚未提供：**生产级账户与访问控制、委托审批界面与限流配额、H 阶段（群聊入口、提案交换与事件订阅）、高德 JS 地图底图、灵感链接自动解析、WebSocket 实时协作、版本一键回滚、行程导出与离线缓存、预订或支付交易。
 
 ### 安全与隐私
 

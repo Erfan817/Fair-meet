@@ -38,6 +38,14 @@ class FakeClient:
         self.calls.append(("submit_inspiration", fields))
         return {"id": "i1", **fields}
 
+    def submit_proposal(self, summary, expected_revision, operations):
+        self.calls.append(("submit_proposal", summary, expected_revision, operations))
+        return {"proposal": {"id": "p1", "status": "pending"}, "auto_confirmed": False}
+
+    def list_proposals(self, status=None):
+        self.calls.append(("list_proposals", status))
+        return [{"id": "p1", "status": status or "pending"}]
+
 
 def _call(server: MCPServer, name: str, arguments: dict) -> dict:
     return server.handle(
@@ -69,6 +77,8 @@ def test_tools_list_exposes_read_and_write_tools():
         "fairmeet_get_checks",
         "fairmeet_submit_need",
         "fairmeet_submit_inspiration",
+        "fairmeet_submit_proposal",
+        "fairmeet_list_proposals",
     }
     need_schema = next(t for t in tools if t["name"] == "fairmeet_submit_need")["inputSchema"]
     assert need_schema["properties"]["kind"]["enum"] == ["preference", "negotiable"]
@@ -80,6 +90,34 @@ def test_tools_call_returns_json_text():
     result = response["result"]
     assert result["isError"] is False
     assert json.loads(result["content"][0]["text"])["trip"]["id"] == "t1"
+
+
+def test_tools_call_submit_proposal_and_list():
+    client = FakeClient()
+    server = MCPServer(client)
+
+    submitted = _call(
+        server,
+        "fairmeet_submit_proposal",
+        {
+            "summary": "新增一个条目",
+            "expected_revision": "r1",
+            "operations": [{"op": "add_day", "day_index": 2}],
+        },
+    )["result"]
+    assert submitted["isError"] is False
+    assert client.calls[0][0] == "submit_proposal"
+
+    listed = _call(server, "fairmeet_list_proposals", {"status": "pending"})["result"]
+    assert listed["isError"] is False
+    assert json.loads(listed["content"][0]["text"])[0]["status"] == "pending"
+
+    missing_ops = _call(
+        server,
+        "fairmeet_submit_proposal",
+        {"summary": "空提案", "expected_revision": "r1", "operations": []},
+    )["result"]
+    assert json.loads(missing_ops["content"][0]["text"])["error"]["code"] == "invalid_arguments"
 
 
 def test_tools_call_submit_need_and_inspiration():
@@ -219,6 +257,22 @@ class _InProcessAgentClient:
         payload = {k: v for k, v in fields.items() if v is not None}
         return self.client.post("/api/agent/inspirations", headers=self.headers, json=payload).json()
 
+    def submit_proposal(self, summary, expected_revision, operations):
+        response = self.client.post(
+            "/api/agent/proposals",
+            headers=self.headers,
+            json={
+                "summary": summary,
+                "expected_revision": expected_revision,
+                "operations": operations,
+            },
+        )
+        return response.json()
+
+    def list_proposals(self, status=None):
+        path = "/api/agent/proposals" + (f"?status={status}" if status else "")
+        return self.client.get(path, headers=self.headers).json()
+
 
 def test_mcp_tools_reach_the_real_service_layer():
     client = TestClient(create_app(Database(":memory:")))
@@ -248,3 +302,43 @@ def test_mcp_tools_reach_the_real_service_layer():
 
     needs = client.get(f"/api/trips/{trip_id}/needs").json()
     assert any(n["value"] == "人均不超过 500" for n in needs)
+
+
+def test_mcp_submit_proposal_reaches_the_real_service_layer():
+    client = TestClient(create_app(Database(":memory:")))
+    trip = client.post(
+        "/api/trips", json={"title": "MCP 提案", "owner_name": "小林", "destination": "成都"}
+    ).json()
+    trip_id = trip["trip"]["id"]
+    owner = trip["owner"]["id"]
+    day = client.post(f"/api/trips/{trip_id}/days?member_id={owner}", json={"day_index": 1}).json()
+    delegation = client.post(
+        f"/api/trips/{trip_id}/agent-delegations?member_id={owner}",
+        json={"agent_name": "MCP Agent"},
+    ).json()
+
+    server = MCPServer(_InProcessAgentClient(client, delegation["token"]))
+    context = json.loads(
+        _call(server, "fairmeet_get_trip_context", {})["result"]["content"][0]["text"]
+    )
+
+    submitted = _call(
+        server,
+        "fairmeet_submit_proposal",
+        {
+            "summary": "新增熊猫基地",
+            "expected_revision": context["revision"],
+            "operations": [
+                {"op": "add_item", "day_id": day["id"], "title": "熊猫基地", "cost": 50}
+            ],
+        },
+    )["result"]
+    assert submitted["isError"] is False
+    payload = json.loads(submitted["content"][0]["text"])
+    assert payload["proposal"]["status"] == "pending"
+    assert payload["proposal"]["origin"] == "agent:MCP Agent"
+
+    listed = json.loads(
+        _call(server, "fairmeet_list_proposals", {"status": "pending"})["result"]["content"][0]["text"]
+    )
+    assert any(p["id"] == payload["proposal"]["id"] for p in listed)

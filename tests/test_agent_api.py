@@ -70,6 +70,8 @@ def test_create_delegation_returns_token_once(client: TestClient):
         "checks:read",
         "need:submit",
         "inspiration:submit",
+        "proposal:submit",
+        "proposal:read",
     }
     assert "token" not in data["delegation"]
 

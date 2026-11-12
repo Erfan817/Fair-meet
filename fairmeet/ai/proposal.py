@@ -45,6 +45,8 @@ class ProposalService:
         member_id: str,
         summary: str,
         operations: list[ProposedOperationEnvelope],
+        origin: str | None = None,
+        delegation_id: str | None = None,
     ) -> ChangeProposal:
         toolbox: Toolbox = self.toolbox_factory(trip_id, member_id)
         impacts: list[OperationImpact] = [toolbox.plan(op) for op in operations]
@@ -63,6 +65,8 @@ class ProposalService:
             requires_confirmation=requires_confirmation,
             status="pending",
             created_at=utcnow(),
+            origin=origin,
+            delegation_id=delegation_id,
         )
         self._persist(proposal)
         return proposal

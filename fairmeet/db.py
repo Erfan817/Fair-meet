@@ -179,12 +179,15 @@ CREATE TABLE IF NOT EXISTS agent_delegations (
     trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
     agent_name TEXT NOT NULL,
-    scopes TEXT NOT NULL,             -- JSON 数组：trip:read / checks:read / need:submit / inspiration:submit
+    scopes TEXT NOT NULL,             -- JSON 数组：trip:read / checks:read / need:submit /
+                                      -- inspiration:submit / proposal:submit / proposal:read
     token_hash TEXT NOT NULL UNIQUE,  -- 只存 SHA-256，明文令牌仅在创建时返回一次
     expires_at TEXT,
     revoked_at TEXT,
     created_at TEXT NOT NULL,
-    last_used_at TEXT
+    last_used_at TEXT,
+    auto_confirm INTEGER NOT NULL DEFAULT 0,
+    auto_confirm_max_cost REAL
 );
 
 CREATE TABLE IF NOT EXISTS agent_audit (
@@ -209,6 +212,8 @@ CREATE INDEX IF NOT EXISTS idx_agent_audit_trip ON agent_audit(trip_id, created_
 _MIGRATIONS: tuple[tuple[str, str, str], ...] = (
     ("needs", "source", "source TEXT"),
     ("inspirations", "source", "source TEXT"),
+    ("agent_delegations", "auto_confirm", "auto_confirm INTEGER NOT NULL DEFAULT 0"),
+    ("agent_delegations", "auto_confirm_max_cost", "auto_confirm_max_cost REAL"),
 )
 
 

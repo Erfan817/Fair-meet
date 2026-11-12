@@ -130,7 +130,7 @@ def create_app(
     from fairmeet.agent import AgentService
     from fairmeet.agent_routes import install_agent_routes
 
-    agents = AgentService(database, service, itinerary, checks, proposals)
+    agents = AgentService(database, service, itinerary, checks, proposals, history)
     app.state.agents = agents
 
     from fairmeet.content import ResearchService

@@ -42,6 +42,7 @@ class OpAddInspiration(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     note: Optional[str] = Field(default=None, max_length=2000)
     source_url: Optional[str] = Field(default=None, max_length=500)
+    source: Optional[str] = Field(default=None, max_length=200)
     place_name: Optional[str] = Field(default=None, max_length=120)
 
 
@@ -174,3 +175,6 @@ class ChangeProposal(BaseModel):
     requires_confirmation: bool
     status: Literal["pending", "confirmed", "rejected"] = "pending"
     created_at: str
+    # 阶段 F/G：标明提案来源，便于审计「哪个 agent 代表谁」；人工/模型提案为 None。
+    origin: Optional[str] = None  # "agent:<name>" 或 None
+    delegation_id: Optional[str] = None

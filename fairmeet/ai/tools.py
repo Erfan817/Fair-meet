@@ -173,7 +173,13 @@ class Toolbox:
             i = self.trips.add_inspiration(
                 self.trip_id,
                 self.member_id,
-                InspirationCreate(title=op.title, note=op.note, source_url=op.source_url, place_name=op.place_name),
+                InspirationCreate(
+                    title=op.title,
+                    note=op.note,
+                    source_url=op.source_url,
+                    source=op.source,
+                    place_name=op.place_name,
+                ),
             )
             return {"kind": "inspiration", "id": i.id}
         if isinstance(op, OpAddPlace):
