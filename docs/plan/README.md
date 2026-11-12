@@ -43,5 +43,10 @@
 - 阶段 E：✅ 出发前与途中体验完成（见 [交接](phase-e-handover.md)）
 - 端到端验收：✅ §9 十条全部达成（真实 uvicorn+HTTP 走查），见 [验收报告](end-to-end-acceptance.md)
 - 收尾：[导出/离线/预订评估](phase-e-export-offline-booking-eval.md)
+- 新增功能设计：[先检索、后规划](research-before-planning.md)（2026-11-11，完整目标设计）。
+- 检索首版：[实现范围与验收](research-mvp.md)（2026-11-11，离线资料/采纳闭环，历史记录）。
+- 真实搜索与规划：[增量实现及验收边界](research-live-planning.md)（公开来源受验证限制；证据驱动活动草案已实现）。
+- 联合验收：[分来源真实搜索/模型/地图](live-joint-acceptance.md)（高德地点 → DeepSeek → 地图路线 → 提案确认已真实通过；Brave 缺配置、公开网页验证未解除，分开记录）。
+- 定位与路线：[个人 Agent 时代的定位与路线图](agent-era-positioning.md)（2026-11-12，共识账本定位、agent 接口原则与 F–H 阶段规划）。
 
 > 说明：均为离线可复现验收（Geo 用 Fake、AI 用 FakeLLM）；真实高德/真实 LLM 接入为遗留待验证项。既有未提交改动原样保护。
