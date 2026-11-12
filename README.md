@@ -32,7 +32,7 @@
 
 **FairMeet 是一个 AI 协助的多人共享出行规划应用**：让同行者一起收集灵感、表达需求、讨论安排，把零散想法整理成可编辑的逐日行程。出发前核对预算与冲突，途中有变化时，调整受影响的安排，而不是从头再来。
 
-> **项目状态**：A–E 阶段的原型主流程已实现，当前仍是早期开发版本，适合本地体验与功能验证，**不是可直接公网部署的生产服务**。首轮验证场景为成都 3–5 人、2–3 天的国内游。
+> **项目状态**：A–E 阶段的原型主流程已实现，F 阶段（agent 委托与 MCP 接入）为实验性实现，当前仍是早期开发版本，适合本地体验与功能验证，**不是可直接公网部署的生产服务**。首轮验证场景为成都 3–5 人、2–3 天的国内游。
 
 ## 为什么不是又一个 AI 行程助手
 
@@ -67,7 +67,18 @@
 5. **讨论后确认**：查看 AI 提案及其影响，再决定是否执行。
 6. **带着计划出发**：使用摘要和途中页面，有变化时进行局部调整。
 
-## 快速开始
+## 在线体验（公网演示）
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Erfan817/Fair-meet)
+
+点击上方按钮，用 GitHub 登录 Render，即可按仓库里的 [`render.yaml`](render.yaml) 蓝本创建公网演示；部署完成后把生成的 `https://<服务名>.onrender.com` 分享给体验者。
+
+- **公开体验无需体验码**，但仍保留频率限制与每日 AI 配额；请只使用虚构昵称、虚构行程。
+- 免费实例闲置会休眠，首次打开可能需要几十秒；`/tmp` 中的 SQLite 数据在重启或重新部署后可能清空。
+- 部署完成后，可在 Render 后台的 Environment 中另行添加 `DEEPSEEK_API_KEY`、`AMAP_WEB_KEY` 启用真实模型与真实地点；不填时使用本地规则/模拟数据。
+- 这是早期演示，不是生产服务；不要填入真实个人信息，也不代表已具备正式认证与数据持久化保证。
+
+## 本地开发与体验
 
 **准备条件**：Python 3.11+、Git；开发环境首选 Python 3.14。首次安装依赖需要联网，**不配置高德或 DeepSeek Key 也可以体验本地演示模式**。
 
@@ -121,9 +132,9 @@ python3 -m venv .venv
 
 </details>
 
-### 3. 打开第一趟旅程
+### 3. 本地打开
 
-访问 **<http://127.0.0.1:8000/>**，创建旅程后即可录入需求、添加灵感、编辑行程。
+访问 **<http://127.0.0.1:8000/>**，创建旅程后即可录入需求、添加灵感、编辑行程。这个地址只在本机有效；要让别人访问，请使用上面的在线体验或部署自己的实例。
 
 - **交互式 API 文档**：<http://127.0.0.1:8000/docs>
 - **健康检查**：<http://127.0.0.1:8000/api/health>
@@ -131,14 +142,15 @@ python3 -m venv .venv
 
 > 邀请链接需要接收方能访问同一个服务。`127.0.0.1` 只供本机使用，不能直接作为手机或其他设备的访问地址；请勿为了体验邀请功能而将当前原型直接暴露到公网。
 
-### Render 部署配置
+### 公网部署（Render）
 
-仓库提供 [`render.yaml`](render.yaml)，可在 Render 的 **New → Blueprint** 中连接此仓库。配置使用 `requirements.txt` 安装运行依赖，并通过 Uvicorn 启动服务。
+仓库提供可直接使用的 [`render.yaml`](render.yaml)：免费 Python Web 服务、健康检查 `/api/health`、公开演示模式、请求限流与每日配额。
 
-- 默认使用模拟地理适配器（`FAIRMEET_GEO=fake`）；若需真实高德，应配置 Key 并调整该开关。
-- 可按需配置 `DEEPSEEK_API_KEY` 启用真实模型，不要将 Key 写入代码。
-- SQLite 位于 `/tmp/fairmeet.db`，实例重启或重新部署后数据可能丢失。
-- 此配置仅提供部署起点，不代表安全加固完成。当前缺少生产级认证，公开展示前应增加访问保护，并仅使用虚构数据。
+- 部署入口见上方 **Deploy to Render**；也可在 Render 的 **New → Blueprint** 中连接本仓库。
+- `FAIRMEET_GEO=amap` 时，填入 `AMAP_WEB_KEY` 会启用真实地点检索/路线；留空则回退模拟数据，研究来源会显示不可用。
+- 填入 `DEEPSEEK_API_KEY` 会启用真实模型；留空则使用本地规则与 FakeLLM，仍可走通界面流程。
+- SQLite 位于 `/tmp/fairmeet.db`，实例重启或重新部署后数据可能丢失；这是演示，不是持久化生产存储。
+- 免费实例会休眠；首个请求可能较慢。公开演示仍不是生产级认证，不要填写真实个人信息。
 
 ## 配置外部服务
 
@@ -188,6 +200,22 @@ AI 的职责是协助解释、整理与提出变更，**不是直接替所有人
 
 这些机制降低误改风险，但不代表模型输出、旅行建议或外部数据一定正确。出发前仍需核实营业时间、票务、交通和个人需求。
 
+## 接入 agent（F 阶段，实验性）
+
+成员可以把自己的 agent 接进同一个旅程：它读旅程上下文、提交需求与灵感，但**不能声明硬约束、不能确认提案**——确认权仍属于人。
+
+1. 成员创建委托，令牌只返回一次：
+
+```bash
+curl -X POST "http://127.0.0.1:8000/api/trips/<trip_id>/agent-delegations?member_id=<member_id>" -H "Content-Type: application/json" -d '{"agent_name":"my-agent","expires_in_hours":168}'
+```
+
+2. agent 用 `Authorization: Bearer fm_agent_...` 调用 `GET /api/agent/trip`、`GET /api/agent/checks`、`POST /api/agent/needs`、`POST /api/agent/inspirations`。
+3. 通过 MCP 接入：`python -m fairmeet.mcp`，设置 `FAIRMEET_BASE_URL` 与 `FAIRMEET_AGENT_TOKEN`。
+4. 撤销：`DELETE /api/trips/<trip_id>/agent-delegations/<delegation_id>?member_id=<member_id>`。
+
+错误统一为 `{"error": {"code", "message", "details"}}`；硬约束返回 `hard_constraint_requires_member`，无来源灵感返回 `source_required`。上下文默认脱敏他人硬约束，所有 agent 写入都进审计。接口、作用域、MCP 配置与限制见 [agent 接入说明](docs/plan/agent-access.md)。
+
 ## 技术与工程结构
 
 **FastAPI + Jinja2** 提供页面和 JSON API，**Pydantic v2** 校验数据，**SQLite** 保存旅程；前端采用服务端渲染与原生 JavaScript，不依赖单页应用构建链。高德与 DeepSeek 通过适配层接入，可替换为模拟实现。
@@ -202,6 +230,9 @@ fairmeet/
 ├── checks.py       # 约束检查与预算汇总
 ├── history.py      # 变更记录与版本快照
 ├── replan.py       # 局部重排
+├── agent.py        # agent 委托、上下文脱敏、受控写入与审计
+├── agent_routes.py # agent 委托与 agent 接口路由
+├── mcp/            # MCP 薄适配层（JSON-RPC over stdio）
 ├── adapters/       # 地理服务端口、模拟实现与高德接入
 ├── ai/             # 模型接入、工具、校验与提案流程
 ├── templates/      # Jinja2 页面
@@ -245,6 +276,7 @@ docs/
 | --- | --- |
 | 产品范围与已确认取舍 | [决策记录](docs/plan/07-confirmed-decisions.md) |
 | 与个人 agent 的关系和后续路线 | [定位与路线图](docs/plan/agent-era-positioning.md) |
+| 让成员自己的 agent 接入 | [agent 接入说明](docs/plan/agent-access.md) |
 | 系统如何组织 | [目标架构](docs/plan/02-architecture.md) · [数据模型](docs/plan/03-data-model.md) |
 | 用户流程与验收标准 | [端到端流程](docs/plan/04-user-flows.md) · [阶段计划](docs/plan/05-phases-and-acceptance.md) |
 | 外部服务接入 | [高德 / DeepSeek](docs/plan/real-integrations.md) |
@@ -265,8 +297,9 @@ A–E 是原型工程的推进阶段，不代表生产就绪等级。
 | C · 做成行程 | 逐日编辑、交通、地图示意、规则检查与预算 | 已实现 |
 | D · AI 协调 | 结构化输出、受控工具、提案确认与来源管理 | 已实现 |
 | E · 带着出发 | 摘要、途中查看、变更历史、快照与局部重排 | 已实现 |
+| F · 被调用 | agent 委托令牌、只读上下文与受控写入、审计、MCP 适配层 | 已实现（实验性） |
 
-**尚未提供：**生产级账户与访问控制、面向外部 agent 的委托授权与 MCP 接口、高德 JS 地图底图、灵感链接自动解析、WebSocket 实时协作、版本一键回滚、行程导出与离线缓存、预订或支付交易。
+**尚未提供：**生产级账户与访问控制、委托审批界面与限流配额、agent 提案写入（G 阶段）、高德 JS 地图底图、灵感链接自动解析、WebSocket 实时协作、版本一键回滚、行程导出与离线缓存、预订或支付交易。
 
 ### 安全与隐私
 

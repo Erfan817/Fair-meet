@@ -126,6 +126,13 @@ def create_app(
     history = HistoryService(database)
     replan = ReplanService(service, itinerary, history)
 
+    # 阶段 F：外部 agent 委托、只读上下文与受控写入。
+    from fairmeet.agent import AgentService
+    from fairmeet.agent_routes import install_agent_routes
+
+    agents = AgentService(database, service, itinerary, checks, proposals)
+    app.state.agents = agents
+
     from fairmeet.content import ResearchService
     from fairmeet.research import ResearchActions, install_research_routes
 
@@ -143,6 +150,7 @@ def create_app(
     app.state.research = research
     app.state.research_actions = research_actions
     install_research_routes(app, research, research_actions)
+    install_agent_routes(app, agents)
 
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

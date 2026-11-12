@@ -192,11 +192,22 @@ class TripService:
             kind=payload.kind,
             category=payload.category,
             value=payload.value,
+            source=payload.source,
         )
         with self.db.cursor() as cur:
             cur.execute(
-                "INSERT INTO needs(id,member_id,trip_id,kind,category,value,created_at) VALUES(?,?,?,?,?,?,?)",
-                (need.id, need.member_id, need.trip_id, need.kind.value, need.category, need.value, need.created_at),
+                "INSERT INTO needs(id,member_id,trip_id,kind,category,value,source,created_at)"
+                " VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    need.id,
+                    need.member_id,
+                    need.trip_id,
+                    need.kind.value,
+                    need.category,
+                    need.value,
+                    need.source,
+                    need.created_at,
+                ),
             )
         return need
 
@@ -211,6 +222,7 @@ class TripService:
                     kind=NeedKind(r["kind"]),
                     category=r["category"],
                     value=r["value"],
+                    source=r["source"],
                     created_at=r["created_at"],
                 )
                 for r in cur.fetchall()
@@ -282,14 +294,15 @@ class TripService:
             title=payload.title,
             note=payload.note,
             source_url=payload.source_url,
+            source=payload.source,
             place_id=place_id,
             # 阶段 B 未接外部解析：手动/粘贴链接均视为「待确认」
             status=InspirationStatus.PENDING,
         )
         with self.db.cursor() as cur:
             cur.execute(
-                "INSERT INTO inspirations(id,trip_id,member_id,title,note,source_url,place_id,status,created_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO inspirations(id,trip_id,member_id,title,note,source_url,source,place_id,status,created_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?)",
                 (
                     insp.id,
                     insp.trip_id,
@@ -297,6 +310,7 @@ class TripService:
                     insp.title,
                     insp.note,
                     insp.source_url,
+                    insp.source,
                     insp.place_id,
                     insp.status.value,
                     insp.created_at,
@@ -315,6 +329,7 @@ class TripService:
                     title=r["title"],
                     note=r["note"],
                     source_url=r["source_url"],
+                    source=r["source"],
                     place_id=r["place_id"],
                     status=InspirationStatus(r["status"]),
                     created_at=r["created_at"],
@@ -342,6 +357,7 @@ class TripService:
             title=r["title"],
             note=r["note"],
             source_url=r["source_url"],
+            source=r["source"],
             place_id=r["place_id"],
             status=InspirationStatus(r["status"]),
             created_at=r["created_at"],

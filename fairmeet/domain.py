@@ -89,6 +89,7 @@ class Need(BaseModel):
     kind: NeedKind
     category: str  # 例如 origin_date/budget/interest/dietary/accessibility
     value: str
+    source: Optional[str] = None  # manual / agent:<name> 等，便于区分来源
     created_at: str = Field(default_factory=utcnow)
 
 
@@ -110,6 +111,7 @@ class Inspiration(BaseModel):
     title: str
     note: Optional[str] = None
     source_url: Optional[str] = None
+    source: Optional[str] = None  # 来源标识（manual / agent:<name> 等）
     place_id: Optional[str] = None
     status: InspirationStatus = InspirationStatus.PENDING
     created_at: str = Field(default_factory=utcnow)
@@ -137,6 +139,7 @@ class NeedCreate(BaseModel):
     kind: NeedKind
     category: str = Field(min_length=1, max_length=40)
     value: str = Field(min_length=1, max_length=500)
+    source: Optional[str] = Field(default=None, max_length=200)
 
 
 class PlaceCreate(BaseModel):
@@ -153,6 +156,7 @@ class InspirationCreate(BaseModel):
     source_url: Optional[str] = Field(default=None, max_length=500)
     place_name: Optional[str] = Field(default=None, max_length=120)
     place_id: Optional[str] = Field(default=None, max_length=80)
+    source: Optional[str] = Field(default=None, max_length=200)
 
     @model_validator(mode="after")
     def exclusive_place(self):

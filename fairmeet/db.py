@@ -172,7 +172,44 @@ CREATE TABLE IF NOT EXISTS revisions (
 
 CREATE INDEX IF NOT EXISTS idx_changelog_trip ON change_log(trip_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_revisions_trip ON revisions(trip_id, created_at);
+
+-- ===== 阶段 F：外部 agent 委托与审计 =====
+CREATE TABLE IF NOT EXISTS agent_delegations (
+    id TEXT PRIMARY KEY,
+    trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    agent_name TEXT NOT NULL,
+    scopes TEXT NOT NULL,             -- JSON 数组：trip:read / checks:read / need:submit / inspiration:submit
+    token_hash TEXT NOT NULL UNIQUE,  -- 只存 SHA-256，明文令牌仅在创建时返回一次
+    expires_at TEXT,
+    revoked_at TEXT,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS agent_audit (
+    id TEXT PRIMARY KEY,
+    trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    delegation_id TEXT NOT NULL,
+    member_id TEXT NOT NULL,
+    agent_name TEXT NOT NULL,
+    action TEXT NOT NULL,             -- need.submit / inspiration.submit / proposal.confirm_denied ...
+    outcome TEXT NOT NULL,            -- applied / denied
+    target_ref TEXT,
+    detail TEXT,                      -- 结构化细节 JSON
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_delegations_trip ON agent_delegations(trip_id);
+CREATE INDEX IF NOT EXISTS idx_delegations_member ON agent_delegations(member_id);
+CREATE INDEX IF NOT EXISTS idx_agent_audit_trip ON agent_audit(trip_id, created_at);
 """
+
+# 阶段 F 的列迁移：CREATE TABLE IF NOT EXISTS 不会给既有库补列。
+_MIGRATIONS: tuple[tuple[str, str, str], ...] = (
+    ("needs", "source", "source TEXT"),
+    ("inspirations", "source", "source TEXT"),
+)
 
 
 def default_db_path() -> str:
@@ -191,7 +228,15 @@ class Database:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.executescript(_SCHEMA)
+        self._apply_migrations()
         self._conn.commit()
+
+    def _apply_migrations(self) -> None:
+        """给既有 SQLite 库补齐新增列（幂等）。"""
+        for table, column, ddl in _MIGRATIONS:
+            existing = {row[1] for row in self._conn.execute(f"PRAGMA table_info({table})")}
+            if column not in existing:
+                self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
     @contextmanager
     def cursor(self) -> Iterator[sqlite3.Cursor]:

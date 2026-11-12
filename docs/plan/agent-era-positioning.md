@@ -241,7 +241,9 @@ AuditEntry        delegation_id + action + proposal_id + revision + created_at
 
 > 与 A–E 一致：每阶段先设计、再实现、再验收；未通过验收不进入下一阶段。以下阶段不承诺日期。
 
-### F · 被调用（只读 + 低风险写入）
+### F · 被调用（只读 + 低风险写入）— ✅ 已实现（2026-11-12）
+
+> 实现与用法见 [Agent 接入说明](agent-access.md)。核心模块：`fairmeet/agent.py`、`fairmeet/agent_routes.py`、`fairmeet/mcp/`。
 
 - **范围**：MCP 适配层（只读旅程上下文、查询校验结果）；委托令牌；agent 提交需求与灵感（标注来源，硬约束标「待本人确认」）；机器可读错误码。
 - **DoD**：
@@ -250,6 +252,8 @@ AuditEntry        delegation_id + action + proposal_id + revision + created_at
   - agent 无法声明硬约束、无法确认提案（接口返回明确错误码）；
   - 委托可撤销，撤销后立即失效；
   - 全部新增路径有回归测试，模拟网络，不消耗第三方配额。
+
+  以上 DoD 由 `tests/test_agent_api.py` 与 `tests/test_mcp.py` 覆盖（含真实 uvicorn 服务上的 MCP stdio 走查）。
 
 ### G · 受控写入（提案 + 审计）
 
@@ -301,7 +305,7 @@ AuditEntry        delegation_id + action + proposal_id + revision + created_at
 
 以下问题需要产品侧明确后再进入 F 阶段实现：
 
-1. **优先形态**：先做 MCP 适配层，还是先做委托令牌 + REST 的 agent 端点？（建议先委托令牌，MCP 作为薄层。）
+1. ~~**优先形态**：先做 MCP 适配层，还是先做委托令牌 + REST？~~ 已按建议落地（F 阶段）：委托令牌 + REST 为主，MCP 作为薄适配层。
 2. **自动确认**：是否允许任何形式的自动确认？若允许，限额与范围如何界定？
 3. **托管模式**：是否提供公开托管实例，还是以自托管 + 邀请链接为主？
 4. **提案交换**：H 阶段的导出格式是否要兼容外部协议，还是先自定义最小格式？
