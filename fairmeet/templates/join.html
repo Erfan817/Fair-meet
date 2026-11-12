@@ -1,14 +1,5 @@
 {% extends "base.html" %}
 {% block title %}加入旅程 · {{ trip.title }}{% endblock %}
 {% block content %}
-<h1>加入「{{ trip.title }}」</h1>
-<p class="hint">目的地：{{ trip.destination }}{% if trip.start_date %} · {{ trip.start_date }} 至 {{ trip.end_date }}{% endif %}</p>
-
-<form class="card" method="post" action="/join/{{ trip.invite_token }}">
-  <label>你的昵称
-    <input name="display_name" required maxlength="60" placeholder="例如：小林">
-  </label>
-  <button type="submit">加入这趟旅程</button>
-</form>
-<p class="hint">凭此邀请链接即可加入并填写需求、贡献灵感。阶段 B 为本机演示，链接暂不等同于正式账户认证。</p>
+<div class="join-layout"><section class="join-story"><span class="travel-label">一份来自同行者的邀请</span><h1>加入「{{ trip.title }}」</h1><p class="hint">目的地：{{ trip.destination }}{% if trip.start_date %} · {{ trip.start_date }} 至 {{ trip.end_date }}{% endif %}</p><div class="join-emblem" aria-hidden="true"><img src="/static/fairmeet-icon.svg" width="104" height="104" alt=""></div><h2>这段旅程，也有你的一份期待。</h2><p>加入后，告诉大家你的需求、分享想去的地点，一起把计划变成值得期待的旅行。</p></section><section class="join-panel"><h2>让同行者认识你</h2><form method="post" action="/join/{{ trip.invite_token }}"><label>你的昵称<input name="display_name" required maxlength="60" placeholder="例如：小林" autocomplete="nickname"></label><button type="submit" class="button-wide">加入这趟旅程</button></form><p class="hint">凭此邀请链接即可加入并填写需求、贡献灵感。阶段 B 为本机演示，链接暂不等同于正式账户认证。</p></section></div>
 {% endblock %}

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -183,6 +184,8 @@ class Database:
 
     def __init__(self, path: str | None = None) -> None:
         self.path = path or default_db_path()
+        self._lock = threading.RLock()
+        self._depth = 0
         # check_same_thread=False：便于 FastAPI 在测试与同步路由中复用连接管理。
         self._conn = sqlite3.connect(self.path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
@@ -192,15 +195,34 @@ class Database:
 
     @contextmanager
     def cursor(self) -> Iterator[sqlite3.Cursor]:
-        cur = self._conn.cursor()
-        try:
-            yield cur
-            self._conn.commit()
-        except Exception:
-            self._conn.rollback()
-            raise
-        finally:
-            cur.close()
+        # A single connection is shared by HTTP handlers and research workers.
+        # Serialize access and use savepoints for nested service transactions.
+        with self._lock:
+            nested = self._depth > 0
+            savepoint = f"fm_{self._depth}"
+            cur = self._conn.cursor()
+            if nested:
+                cur.execute(f"SAVEPOINT {savepoint}")
+            else:
+                cur.execute("BEGIN IMMEDIATE")
+            self._depth += 1
+            try:
+                yield cur
+                if nested:
+                    cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+                else:
+                    self._conn.commit()
+            except Exception:
+                if nested:
+                    cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                    cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+                else:
+                    self._conn.rollback()
+                raise
+            finally:
+                self._depth -= 1
+                cur.close()
 
     def close(self) -> None:
-        self._conn.close()
+        with self._lock:
+            self._conn.close()

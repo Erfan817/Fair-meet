@@ -8,9 +8,12 @@
 
 from __future__ import annotations
 
+from math import isfinite
+
 import httpx
 
 from fairmeet.adapters import (
+    DiscoveryPoi,
     GeocodeResult,
     GeoPoint,
     GeoUnavailable,
@@ -21,6 +24,7 @@ from fairmeet.domain import ProvenanceKind, TransportMode
 
 _GEOCODE_URL = "https://restapi.amap.com/v3/geocode/geo"
 _POI_URL = "https://restapi.amap.com/v3/place/around"
+_CITY_POI_URL = "https://restapi.amap.com/v3/place/text"
 _ROUTE_URL = "https://restapi.amap.com/v3/direction/walking"  # 步行；驾车/公交另用对应端点
 
 _MODE_TO_AMAP = {
@@ -31,22 +35,40 @@ _MODE_TO_AMAP = {
 }
 
 
+def _poi_text(value: object) -> str:
+    # 高德缺失文本常以 [] 返回；保留原始城市，不以查询城市补造结果归属。
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(part for part in value if isinstance(part, str))
+    return ""
+
+
 class AmapGeoAdapter:
     def __init__(self, key: str, timeout: float = 5.0) -> None:
         self._key = key
         self._timeout = timeout
 
     def _get(self, url: str, params: dict[str, str]) -> dict:
+        # 局部引入轻量日志保护，避免 httpx INFO / httpcore DEBUG 暴露 query 中的 Key。
+        from fairmeet.content.safety import private_http_logs
+
         params = {**params, "key": self._key}
-        try:
-            resp = httpx.get(url, params=params, timeout=self._timeout)
-        except httpx.HTTPError as exc:  # 断网/超时/连接错误
-            raise GeoUnavailable(f"高德请求失败: {exc}") from exc
-        if resp.status_code != 200:
-            raise GeoUnavailable(f"高德 HTTP {resp.status_code}")
-        data = resp.json()
+        with private_http_logs():
+            try:
+                resp = httpx.get(url, params=params, timeout=self._timeout, follow_redirects=False)
+            except httpx.HTTPError:  # 异常可能带含 Key 的完整 URL，不保留异常链或内容。
+                raise GeoUnavailable("高德请求失败") from None
+            if resp.status_code != 200:
+                raise GeoUnavailable("高德 HTTP 请求失败")
+            try:
+                data = resp.json()
+            except ValueError:
+                raise GeoUnavailable("高德响应格式错误") from None
+        if not isinstance(data, dict):
+            raise GeoUnavailable("高德响应格式错误")
         if str(data.get("status")) != "1":
-            raise GeoUnavailable(f"高德返回错误: {data.get('info')}")
+            raise GeoUnavailable("高德返回错误")
         return data
 
     def geocode(self, address: str) -> GeocodeResult:
@@ -85,6 +107,54 @@ class AmapGeoAdapter:
             )
         if not out:
             raise GeoUnavailable(f"高德周边搜索无结果: {keyword}")
+        return out
+
+    def search_city(self, city: str, keyword: str) -> list[DiscoveryPoi]:
+        """仅按明确城市检索一页真实 POI；城市是否匹配由规划器进一步核验。"""
+        city, keyword = city.strip(), keyword.strip()
+        if not city or not keyword:
+            raise GeoUnavailable("城市和关键词不能为空")
+        data = self._get(
+            _CITY_POI_URL,
+            {
+                "city": city,
+                "citylimit": "true",
+                "keywords": keyword,
+                "offset": "10",
+                "page": "1",
+                "extensions": "base",
+            },
+        )
+        pois = data.get("pois") or []
+        if not isinstance(pois, list):
+            raise GeoUnavailable("高德 POI 响应格式错误")
+        out: list[DiscoveryPoi] = []
+        for p in pois[:10]:
+            if not isinstance(p, dict):
+                continue
+            poi_id, name = _poi_text(p.get("id")), _poi_text(p.get("name"))
+            if not poi_id.strip() or not name.strip():
+                continue
+            try:
+                lng_s, lat_s = p["location"].split(",")
+                lng, lat = float(lng_s), float(lat_s)
+            except (KeyError, AttributeError, TypeError, ValueError, OverflowError):
+                continue
+            if not (isfinite(lng) and isfinite(lat) and -180 <= lng <= 180 and -90 <= lat <= 90):
+                continue
+            out.append(
+                DiscoveryPoi(
+                    id=poi_id,
+                    name=name,
+                    city=_poi_text(p.get("cityname")),
+                    address=_poi_text(p.get("address")),
+                    lng=lng,
+                    lat=lat,
+                    category=_poi_text(p.get("type")) or None,
+                )
+            )
+        if not out:
+            raise GeoUnavailable("高德城市搜索无结果")
         return out
 
     def route(self, origin: GeoPoint, destination: GeoPoint, mode: TransportMode) -> RouteResult:

@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ trip.title }} · 行程计划{% endblock %}
+{% block body_class %}plan-page{% endblock %}
 {% block content %}
-<h1>{{ trip.title }} · 行程计划</h1>
+<header class="page-heading"><h1>{{ trip.title }} · 行程计划</h1>
 <p class="hint">
   <a href="/trip/{{ trip.id }}?member={{ me.id if me else '' }}">← 返回旅程空间</a> ·
   <a href="/trip/{{ trip.id }}/map">地图/时间线视图</a> ·
   目的地：{{ trip.destination }}
-</p>
-
+</p><p class="page-description">把每一天安排得刚刚好。时间、地点与花费，在这里一起确认。</p></header>
+{% if not me %}<div class="warning">当前为只读浏览。通过邀请链接加入后，即可添加每天的安排。</div>{% endif %}
+<div class="plan-overview">
 {% if check.conflicts %}
-<section class="card">
+<section class="card check-panel has-conflicts">
   <h2>检查结果 {% if not check.ok %}<span class="badge badge-hard">存在硬约束冲突</span>{% endif %}</h2>
   <ul class="conflicts">
     {% for c in check.conflicts %}
@@ -21,10 +23,10 @@
   </ul>
 </section>
 {% else %}
-<section class="card"><h2>检查结果</h2><p class="hint">未发现冲突或风险。</p></section>
+<section class="card check-panel"><h2>检查结果</h2><p class="hint">未发现冲突或风险。</p></section>
 {% endif %}
 
-<section class="card">
+<section class="card budget-panel{% if budget.over_budget %} is-over{% endif %}">
   <h2>预算</h2>
   <p>预算上限：{{ budget.trip_budget if budget.trip_budget is not none else '未设置' }} 元 ·
      估算合计：<strong>{{ budget.estimated_total }}</strong> 元
@@ -32,8 +34,10 @@
   <p class="hint">按来源分类：{% for k, v in budget.by_provenance.items() %}{{ k }}={{ v }} 元 {% endfor %}{% if budget.note %}<br>{{ budget.note }}{% endif %}</p>
 </section>
 
+</div>
+{% if not days %}<div class="empty-state"><strong>每天的故事，从这里开始。</strong><p>还没有行程。{% if me %}在下方添加第一天，再安排地点、时间和花费。{% else %}邀请成员添加安排后，即可在这里查看。{% endif %}</p></div>{% endif %}
 {% for d in days %}
-<section class="card">
+<section class="card day-panel">
   <h2>第 {{ d.day_index }} 天{% if d.date %} · {{ d.date }}{% endif %}{% if d.title %} · {{ d.title }}{% endif %}</h2>
   {% set day_items = items | selectattr('day_id', 'equalto', d.id) | list %}
   {% if day_items %}
@@ -51,7 +55,7 @@
       {% if me %}
       <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/items/{{ it.id }}/status">
         <input type="hidden" name="member" value="{{ me.id }}">
-        <select name="status">
+        <select name="status" aria-label="{{ it.title }}的行程状态">
           {% for s in item_statuses %}<option value="{{ s.value }}" {% if s.value==it.status.value %}selected{% endif %}>{{ s.value }}</option>{% endfor %}
         </select>
         <button type="submit">改状态</button>
@@ -61,7 +65,7 @@
     {% endfor %}
   </ol>
   {% else %}
-  <p class="hint">这一天还没有安排。</p>
+  <div class="empty-state"><p>这一天还没有安排。</p><p>留一点空白也很好；准备好时，再把想去的地方加入当天行程。</p></div>
   {% endif %}
 
   {% if me %}
@@ -100,8 +104,8 @@
 {% endfor %}
 
 {% if me %}
-<section class="card">
-  <h2>新增一天</h2>
+<section class="card add-day-panel">
+  <h2>新增一天</h2><p class="section-description">先定当天主题，再慢慢填入值得期待的安排。</p>
   <form class="inline-form" method="post" action="/ui/trips/{{ trip.id }}/days">
     <input type="hidden" name="member" value="{{ me.id }}">
     <div class="row">

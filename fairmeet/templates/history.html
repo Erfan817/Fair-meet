@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ trip.title }} · 变更历史{% endblock %}
+{% block body_class %}history-page{% endblock %}
 {% block content %}
-<h1>{{ trip.title }} · 变更历史</h1>
+<header class="page-heading"><h1>{{ trip.title }} · 变更历史</h1>
 <p class="hint">
   <a href="/trip/{{ trip.id }}">旅程空间</a> ·
   <a href="/trip/{{ trip.id }}/summary">出发前摘要</a> ·
   <a href="/trip/{{ trip.id }}/plan">行程计划</a>
-</p>
-
+</p><p class="page-description">计划每一次变得更好，都有迹可循。查看最近修改，也回看旅程的版本。</p></header>
+<div class="history-layout">
 <section class="card">
   <h2>最近变更（{{ entries | length }}）</h2>
   {% if entries %}
-  <ul>
+  <ul class="change-list">
     {% for e in entries %}
     <li>
       <span class="badge">{{ e.change_type.value }}</span>
@@ -23,17 +24,18 @@
     </li>
     {% endfor %}
   </ul>
-  {% else %}<p class="hint">暂无变更记录。</p>{% endif %}
+  {% else %}<div class="empty-state"><strong>旅程的故事，才刚刚开始。</strong><p>暂无变更记录。</p><p>添加行程或调整状态后，修改会记录在这里。</p></div>{% endif %}
 </section>
 
 <section class="card">
   <h2>版本快照（{{ revisions | length }}）</h2>
   {% if revisions %}
-  <ul>
+  <ul class="revision-list">
     {% for r in revisions %}
     <li>{{ r.label }} <span class="note">· {{ r.created_at }} · 条目 {{ r.snapshot['items'] | length }} 个</span></li>
     {% endfor %}
   </ul>
-  {% else %}<p class="hint">暂无快照。</p>{% endif %}
+  {% else %}<div class="empty-state"><p>暂无快照。</p><p>保存的版本会集中在这里，方便回看当时的计划。</p></div>{% endif %}
 </section>
+</div>
 {% endblock %}

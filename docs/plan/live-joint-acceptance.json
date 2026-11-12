@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-11T14:13:57.657947+00:00",
+  "destination": "成都",
+  "uses_fixtures": false,
+  "paths": [
+    {
+      "source": "brave",
+      "status": "blocked",
+      "error_code": "missing_brave_configuration"
+    },
+    {
+      "source": "public_web",
+      "status": "blocked",
+      "error_code": "prior_verification_not_confirmed_cleared"
+    }
+  ]
+}

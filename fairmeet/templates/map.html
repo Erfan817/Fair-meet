@@ -1,36 +1,34 @@
 {% extends "base.html" %}
 {% block title %}{{ trip.title }} · 时间线与地图{% endblock %}
+{% block body_class %}map-page{% endblock %}
 {% block content %}
-<h1>{{ trip.title }} · 时间线与地图</h1>
+<header class="page-heading"><h1>{{ trip.title }} · 时间线与地图</h1>
 <p class="hint">
   <a href="/trip/{{ trip.id }}/plan">← 返回行程编辑</a> · 目的地：{{ trip.destination }}
-</p>
-
+</p><p class="page-description">换个角度看旅程，把每天的安排与地点串起来。</p></header>
+<div class="map-layout">
 <section class="card">
   <h2>地图（离线示意图）</h2>
   <p class="hint">阶段 C 使用离线坐标示意图；真实高德 JS 地图需核实 Key 类型/配额后再接入。无坐标的点会标注「无坐标」。</p>
-  <div id="map" class="mapbox"><svg id="mapsvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg></div>
-  <p id="map-status" class="hint"></p>
+  <div id="map" class="mapbox"><svg id="mapsvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" role="img" aria-label="行程地点离线坐标示意图"></svg></div>
+  <p id="map-status" class="hint" role="status" aria-live="polite">正在加载坐标数据…</p>
 </section>
 
 <section class="card">
   <h2>逐日时间线</h2>
-  <div id="timeline"></div>
+  <div id="timeline" aria-live="polite"></div>
 </section>
 
-<style>
-.mapbox { width:100%; height:280px; background:#eef2f7; border-radius:12px; border:1px solid var(--line); }
-#mapsvg { width:100%; height:100%; }
-.tl-day { margin-bottom:1rem; }
-.tl-day h3 { font-size:.95rem; margin:.2rem 0; }
-.tl-item { display:flex; gap:.5rem; padding:.3rem 0; border-bottom:1px dashed var(--line); font-size:.9rem; }
-.tl-time { color:var(--muted); min-width:5.5rem; }
-</style>
+</div>
+<noscript><div class="warning">地图与时间线需要 JavaScript。你仍可通过“行程计划”或“出发前摘要”查看完整安排。</div></noscript>
 
 <script>
 (function () {
   var tripId = {{ trip.id | tojson }};
-  fetch('/api/trips/' + tripId + '/map-data').then(function (r) { return r.json(); }).then(function (data) {
+  fetch('/api/trips/' + tripId + '/map-data').then(function (r) {
+    if (!r.ok) throw new Error('请求未完成（' + r.status + '），请刷新重试。');
+    return r.json();
+  }).then(function (data) {
     var pts = [];
     data.days.forEach(function (d) {
       d.items.forEach(function (it) {
@@ -59,7 +57,7 @@
           ln.setAttribute('y1', 90 - ((pts[i-1].lat - minLat) / spanLat) * 80);
           ln.setAttribute('x2', ((pts[i].lng - minLng) / spanLng) * 80 + 10);
           ln.setAttribute('y2', 90 - ((pts[i].lat - minLat) / spanLat) * 80);
-          ln.setAttribute('stroke', '#93c5fd'); ln.setAttribute('stroke-width', '0.6');
+          ln.setAttribute('stroke', '#6ebacb'); ln.setAttribute('stroke-width', '0.6');
           svg.appendChild(ln);
         }
       }
@@ -67,7 +65,7 @@
         var c = document.createElementNS(NS, 'circle');
         c.setAttribute('cx', ((p.lng - minLng) / spanLng) * 80 + 10);
         c.setAttribute('cy', 90 - ((p.lat - minLat) / spanLat) * 80);
-        c.setAttribute('r', '1.6'); c.setAttribute('fill', '#2563eb');
+        c.setAttribute('r', '1.6'); c.setAttribute('fill', '#155e83');
         var t = document.createElementNS(NS, 'title');
         t.textContent = 'D' + p.day + ' · ' + p.label;
         c.appendChild(t); svg.appendChild(c);
@@ -92,6 +90,7 @@
     });
   }).catch(function (e) {
     document.getElementById('map-status').textContent = '加载地图数据失败：' + e;
+    document.getElementById('timeline').textContent = '未能加载行程。请刷新重试，或通过行程计划查看安排。';
   });
 })();
 </script>

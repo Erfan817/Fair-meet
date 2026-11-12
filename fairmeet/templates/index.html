@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% block title %}FairMeet · 创建旅程{% endblock %}
+{% block body_class %}home-page{% endblock %}
 {% block content %}
-<h1>创建一趟旅程</h1>
-<p class="hint">召集同行者，收集大家的灵感与需求，一起形成共享旅程计划。</p>
-
-<form class="card" method="post" action="/ui/trips">
-  <label>旅程标题
-    <input name="title" required maxlength="120" placeholder="例如：成都三日游">
-  </label>
-  <label>目的地
-    <input name="destination" value="成都" maxlength="60">
-  </label>
-  <label>发起人昵称
-    <input name="owner_name" value="发起人" maxlength="60">
-  </label>
-  <div class="row">
-    <label>开始日期
-      <input type="date" name="start_date">
-    </label>
-    <label>结束日期
-      <input type="date" name="end_date">
-    </label>
-  </div>
-  <label>预算（元，可留空）
-    <input type="number" name="budget" min="0" step="1" placeholder="可留空">
-  </label>
-  <button type="submit">创建旅程并生成邀请链接</button>
-</form>
+<div class="home-layout">
+  <section class="home-story" aria-labelledby="home-heading">
+    <span class="travel-label"><span class="status-dot" aria-hidden="true"></span> 旅行，从一起商量开始</span>
+    <h1 id="home-heading">各有期待，<br>一起出发。</h1>
+    <p class="home-intro">有人想漫步小巷，有人惦记一顿好饭。<br>把不同的愿望，放进同一份旅行计划。</p>
+    <div class="route-illustration" aria-hidden="true">
+      <svg viewBox="0 0 520 270" fill="none"><path d="M0 225C90 225 50 100 140 100S220 210 310 210S390 100 520 100" stroke="#D7E7F1" stroke-width="34"/><path d="M40 60H127C165 60 186 94 186 126V158C186 192 221 202 270 165L328 120" stroke="#155E83" stroke-width="3" stroke-dasharray="7 7"/><path d="M55 238H145C192 238 220 202 240 178L328 120" stroke="#55ADBE" stroke-width="3"/><path d="M458 42H422C384 42 398 120 328 120" stroke="#155E83" stroke-width="3"/><circle cx="40" cy="60" r="9" fill="#155E83"/><circle cx="55" cy="238" r="9" fill="#86D4E4" stroke="#155E83" stroke-width="2"/><circle cx="458" cy="42" r="9" fill="#155E83"/><circle cx="328" cy="120" r="26" fill="#F6BC54"/><circle cx="328" cy="120" r="8" fill="#155E83"/><path d="m318 69 10-16 10 16M328 53V29" stroke="#155E83" stroke-width="2" stroke-linecap="round"/><rect x="67" y="27" width="92" height="29" rx="14" fill="white"/><text x="113" y="46" text-anchor="middle" fill="#385D72" font-size="12" font-family="sans-serif">你的愿望</text><rect x="366" y="174" width="111" height="32" rx="16" fill="white"/><text x="421" y="195" text-anchor="middle" fill="#385D72" font-size="12" font-family="sans-serif">我们的目的地</text></svg>
+      <span class="illustration-caption">不同的起点，汇成共同的路线。</span>
+    </div>
+    <ol class="journey-steps"><li><span>1</span><div><strong>创建旅程</strong><small>定下目的地与日期</small></div></li><li><span>2</span><div><strong>邀请同行</strong><small>收集需求与灵感</small></div></li><li><span>3</span><div><strong>共同规划</strong><small>协调安排，安心出发</small></div></li></ol>
+  </section>
+  <section class="create-panel" aria-labelledby="create-heading">
+    <div class="panel-heading"><span class="paper-tab">新旅程</span><h2 id="create-heading">创建一趟旅程</h2><p class="hint">召集同行者，收集大家的灵感与需求，一起形成共享旅程计划。</p></div>
+    <form method="post" action="/ui/trips" class="create-form">
+      <label>旅程标题 <span class="field-required">必填</span><input name="title" required maxlength="120" placeholder="例如：成都三日游" autocomplete="off"></label>
+      <div class="row"><label>目的地<input name="destination" value="成都" maxlength="60"></label><label>发起人昵称<input name="owner_name" value="发起人" maxlength="60" autocomplete="nickname"></label></div>
+      <div class="row"><label>开始日期<input type="date" name="start_date"></label><label>结束日期<input type="date" name="end_date"></label></div>
+      <label>预算（元，可留空）<input type="number" name="budget" min="0" step="1" placeholder="可留空" inputmode="numeric"></label>
+      <p class="form-note">日期、预算暂时没定？可以先召集大家，再一起商量。</p>
+      <button type="submit" class="button-wide">创建旅程并生成邀请链接</button>
+      <p class="form-footnote">创建后即可分享邀请链接，无需为同行者分别建档。</p>
+    </form>
+  </section>
+</div>
+<section class="home-bottom" aria-label="协作方式"><div><strong>每个人的需求，都值得被看见。</strong><p>从预算、饮食到行动需求，把不能妥协的事提前说清楚。</p></div><div><strong>灵感先收好，安排慢慢来。</strong><p>地点、攻略和随手记，汇进同一个灵感箱。</p></div><div><strong>计划变了，也有迹可循。</strong><p>查看提案与变更记录，出发前再一起确认。</p></div></section>
 {% endblock %}

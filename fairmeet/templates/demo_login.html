@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}进入体验 · FairMeet{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/demo.css">
+<section class="demo-entry" aria-labelledby="demo-title">
+  <div class="demo-intro">
+    <span class="demo-ticket">FairMeet 体验通行证</span>
+    <h1 id="demo-title">下一趟旅行，<br>一起计划。</h1>
+    <p>把想去的地方、每个人的偏好与预算，<br class="demo-break">放进同一份可以讨论的旅程。</p>
+    <div class="demo-route" aria-hidden="true"><span>各自出发</span><i></i><span>一起抵达</span></div>
+  </div>
+  <div class="demo-gate">
+    <h2>欢迎来试一试</h2>
+    <p>输入发起人分享的体验码，进入 FairMeet。</p>
+    <form action="/demo/login" method="post">
+      <label for="access-code">体验码</label>
+      <input id="access-code" name="access_code" type="password" autocomplete="current-password"
+             required maxlength="256" autofocus {% if error %}aria-invalid="true" aria-describedby="demo-error"{% endif %}>
+      {% if error %}<p id="demo-error" class="demo-error" role="alert">{{ error }}</p>{% endif %}
+      <button type="submit">进入体验</button>
+    </form>
+    <p class="demo-privacy">这是早期演示，不是正式旅行服务。请只使用虚构昵称与行程，不要填写个人敏感信息；演示数据可能在重启后清除。</p>
+    <p class="demo-help">还没有体验码？请联系分享这个网站的人。</p>
+  </div>
+</section>
+{% endblock %}

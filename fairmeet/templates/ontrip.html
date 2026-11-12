@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ trip.title }} · 途中查看{% endblock %}
+{% block body_class %}ontrip-page{% endblock %}
 {% block content %}
-<h1>{{ trip.title }} · 途中查看</h1>
+<header class="page-heading"><h1>{{ trip.title }} · 途中查看</h1>
 <p class="hint">
   <a href="/trip/{{ trip.id }}">旅程空间</a> ·
   <a href="/trip/{{ trip.id }}/summary">出发前摘要</a> ·
   <a href="/trip/{{ trip.id }}/plan?member={{ me.id if me else '' }}">行程计划</a>
-</p>
+</p><p class="page-description">少一点翻找，多一点沿途风景。每天的时间、地点与提醒，都在手边。</p></header>
 {% if not me %}<div class="warning">建议通过邀请链接进入以使用完整协作。</div>{% endif %}
 
 {% if check.conflicts %}
-<section class="card">
+<section class="card check-panel has-conflicts">
   <h2>需要注意</h2>
   <ul>
     {% for c in check.conflicts %}
@@ -20,9 +21,10 @@
 </section>
 {% endif %}
 
+{% if not days %}<div class="empty-state"><strong>旅程还在酝酿中。</strong><p>还没有每日安排。先在行程计划中添加天数和地点，途中就能随时查看。</p><a class="button button-secondary" href="/trip/{{ trip.id }}/plan?member={{ me.id if me else '' }}">前往行程计划</a></div>{% endif %}
 {% for d in days %}
 {% set day_items = items | selectattr('day_id', 'equalto', d.id) | sort(attribute='sort_order') | list %}
-<section class="card">
+<section class="card day-panel">
   <h2>第 {{ d.day_index }} 天{% if d.date %} · {{ d.date }}{% endif %}{% if d.title %} · {{ d.title }}{% endif %}</h2>
   {% if day_items %}
   <ol class="timeline">
@@ -39,7 +41,7 @@
     </li>
     {% endfor %}
   </ol>
-  {% else %}<p class="hint">无安排</p>{% endif %}
+  {% else %}<div class="empty-state"><p>无安排</p><p>给今天留一点自由时间，或在行程计划里补充安排。</p></div>{% endif %}
 </section>
 {% endfor %}
 {% endblock %}

@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
@@ -26,6 +27,7 @@ from fairmeet.ai.sources import SourceRegistry
 from fairmeet.ai.tools import Toolbox
 from fairmeet.checks import CheckService
 from fairmeet.db import Database
+from fairmeet.demo import DemoGuard, DemoSettings
 from fairmeet.domain import (
     ChangeType,
     DayCreate,
@@ -85,14 +87,26 @@ def create_app(
     db: Database | None = None,
     geo: GeoAdapter | None = None,
     llm: LLMClient | None = None,
+    demo_settings: DemoSettings | None = None,
+    content_provider=None,
 ) -> FastAPI:
-    app = FastAPI(title="FairMeet", version="0.1.0")
+    @asynccontextmanager
+    async def lifespan(application):
+        try:
+            yield
+        finally:
+            application.state.research.close()
+
+    app = FastAPI(title="FairMeet", version="0.1.0", lifespan=lifespan)
+    app.state.demo_settings = demo_settings if demo_settings is not None else DemoSettings.from_env()
     database = db or Database()
     service = TripService(database)
     geo_adapter = geo or _build_geo_adapter()
     itinerary = ItineraryService(database, service, geo_adapter)
     checks = CheckService(service, itinerary)
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    if app.state.demo_settings.enabled:
+        app.add_middleware(DemoGuard, settings=app.state.demo_settings, database=database, templates=templates)
 
     # 阶段 D：AI 协调组件。LLM 选择：显式注入优先；否则有 DEEPSEEK_API_KEY 用真实 DeepSeek，否则 FakeLLM(离线)。
     if llm is None:
@@ -111,6 +125,24 @@ def create_app(
     orchestrator = Orchestrator(service, proposals, explainer, sources, llm_client, itinerary=itinerary)
     history = HistoryService(database)
     replan = ReplanService(service, itinerary, history)
+
+    from fairmeet.content import ResearchService
+    from fairmeet.research import ResearchActions, install_research_routes
+
+    research = ResearchService(database, service, itinerary, provider=content_provider)
+    research_actions = ResearchActions(database, service, itinerary, proposals, research)
+    from fairmeet.planning import EvidencePlanner
+
+    planner = EvidencePlanner(
+        database, service, itinerary, proposals, research, research_actions, geo_adapter, llm_client
+    )
+    research_actions.planner = planner
+    app.state.evidence_planner = planner
+    proposals.confirm_validator = research_actions.validate_proposal
+    proposals.execution_recorder = research_actions.link_execution
+    app.state.research = research
+    app.state.research_actions = research_actions
+    install_research_routes(app, research, research_actions)
 
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -589,6 +621,8 @@ def create_app(
         message = (payload or {}).get("message", "")
         if not isinstance(message, str) or not message.strip():
             raise HTTPException(status_code=400, detail="message 不能为空")
+        if len(message) > 4000:
+            raise HTTPException(status_code=400, detail="message 不能超过 4000 字符，请缩短后重试")
         try:
             return orch.handle(trip_id, member_id, message)
         except FairMeetError as exc:
@@ -616,7 +650,12 @@ def create_app(
         prop: ProposalService = Depends(prop), hist: HistoryService = Depends(hist),
     ):
         try:
+            service.require_member(trip_id, member_id)
+            if prop.get(proposal_id).trip_id != trip_id:
+                raise NotFound("提案不属于该旅程")
             result = prop.confirm(proposal_id, member_id)
+        except FairMeetError as exc:
+            raise _err(exc) from exc
         except ProposalError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         hist.record(
@@ -631,7 +670,12 @@ def create_app(
     @app.post("/api/trips/{trip_id}/proposals/{proposal_id}/reject")
     def api_reject_proposal(trip_id: str, proposal_id: str, member_id: str, prop: ProposalService = Depends(prop)):
         try:
+            service.require_member(trip_id, member_id)
+            if prop.get(proposal_id).trip_id != trip_id:
+                raise NotFound("提案不属于该旅程")
             return prop.reject(proposal_id, member_id).model_dump(mode="json")
+        except FairMeetError as exc:
+            raise _err(exc) from exc
         except ProposalError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

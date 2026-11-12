@@ -1,21 +1,22 @@
 {% extends "base.html" %}
 {% block title %}{{ trip.title }} · 出发前摘要{% endblock %}
+{% block body_class %}summary-page{% endblock %}
 {% block content %}
-<h1>{{ summary.trip.title }} · 出发前摘要</h1>
+<header class="page-heading"><h1>{{ summary.trip.title }} · 出发前摘要</h1>
 <p class="hint">目的地：{{ summary.trip.destination }}{% if summary.trip.start_date %} · {{ summary.trip.start_date }} 至 {{ summary.trip.end_date }}{% endif %} · 状态：{{ summary.trip.status }}</p>
 <p class="hint">
   <a href="/trip/{{ trip.id }}">旅程空间</a> ·
   <a href="/trip/{{ trip.id }}/plan">行程计划</a> ·
   <a href="/trip/{{ trip.id }}/ontrip">途中查看</a> ·
   <a href="/trip/{{ trip.id }}/history">变更历史</a>
-</p>
-
+</p><p class="page-description">出发前，把同行者、预算和每天的安排再看一遍。带着共识上路。</p></header>
+<div class="summary-top">
 <section class="card">
   <h2>成员</h2>
-  <p>{{ summary.members | join('、') }}</p>
+  <p class="summary-members">{{ summary.members | join('、') }}</p>{% if not summary.members %}<div class="empty-state">还没有成员。回到旅程空间，分享邀请链接给同行者。</div>{% endif %}
 </section>
 
-<section class="card">
+<section class="card budget-panel{% if summary.budget.over_budget %} is-over{% endif %}">
   <h2>预算与检查</h2>
   <p>预算上限：{{ summary.budget.trip_budget if summary.budget.trip_budget is not none else '未设置' }} 元 ·
      估算合计：<strong>{{ summary.budget.estimated_total }}</strong> 元
@@ -30,8 +31,10 @@
   {% else %}<p class="hint">未发现冲突或风险。</p>{% endif %}
 </section>
 
+</div>
+{% if not summary.days %}<div class="empty-state"><strong>还没有每日安排。</strong><p>在行程计划中添加天数和地点，再回来查看出发前摘要。</p><a class="button button-secondary" href="/trip/{{ trip.id }}/plan">前往行程计划</a></div>{% endif %}
 {% for d in summary.days %}
-<section class="card">
+<section class="card day-panel">
   <h2>第 {{ d.day_index }} 天{% if d.date %} · {{ d.date }}{% endif %}{% if d.title %} · {{ d.title }}{% endif %}</h2>
   {% if d['items'] %}
   <ol class="timeline">
@@ -45,7 +48,7 @@
     </li>
     {% endfor %}
   </ol>
-  {% else %}<p class="hint">无安排</p>{% endif %}
+  {% else %}<div class="empty-state"><p>无安排</p><p>这一天的计划还留着空白，可以在行程计划中继续完善。</p></div>{% endif %}
 </section>
 {% endfor %}
 {% endblock %}

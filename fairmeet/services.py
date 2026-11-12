@@ -156,8 +156,8 @@ class TripService:
         with self.db.cursor() as cur:
             cur.execute("SELECT * FROM members WHERE id=? AND trip_id=?", (member_id, trip_id))
             row = cur.fetchone()
-        if row is None:
-            raise Forbidden("无权访问该旅程")
+        if row is None or row["status"] != MemberStatus.JOINED.value:
+            raise Forbidden("无权访问该旅程，请确认成员仍已加入")
         return _row_to_member(row)
 
     # ---- 成员 ----
@@ -264,7 +264,12 @@ class TripService:
     # ---- 灵感箱 ----
     def add_inspiration(self, trip_id: str, member_id: str, payload: InspirationCreate) -> Inspiration:
         self.require_member(trip_id, member_id)
-        place_id = None
+        place_id = payload.place_id
+        if place_id:
+            with self.db.cursor() as cur:
+                cur.execute("SELECT id FROM places WHERE id=? AND trip_id=?", (place_id, trip_id))
+                if cur.fetchone() is None:
+                    raise Forbidden("地点不属于该旅程")
         if payload.place_name:
             place = self.add_place(
                 trip_id, member_id, PlaceCreate(name=payload.place_name, source=payload.source_url or "manual")

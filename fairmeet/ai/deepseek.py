@@ -28,11 +28,13 @@ class DeepSeekLLM:
         base_url: str | None = None,
         model: str | None = None,
         timeout: float = 30.0,
+        max_tokens: int = 1500,
     ) -> None:
         self._api_key = api_key
         self._base_url = (base_url or get_deepseek_base_url()).rstrip("/")
         self._model = model or get_deepseek_model()
         self._timeout = timeout
+        self._max_tokens = max_tokens
 
     def complete(self, system: str, user: str) -> str:
         url = f"{self._base_url}/chat/completions"
@@ -45,15 +47,19 @@ class DeepSeekLLM:
             "temperature": 0.2,
             "response_format": {"type": "json_object"},
             "stream": False,
+            "max_tokens": self._max_tokens,
         }
         headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json"}
+        from fairmeet.content.safety import private_http_logs
+
         try:
-            resp = httpx.post(url, json=payload, headers=headers, timeout=self._timeout)
+            with private_http_logs():
+                resp = httpx.post(url, json=payload, headers=headers, timeout=self._timeout, follow_redirects=False)
         except httpx.HTTPError as exc:
             raise DeepSeekError(f"DeepSeek 请求失败: {type(exc).__name__}") from exc
         if resp.status_code != 200:
-            # 不回显请求头/Key；仅状态码与有限正文
-            raise DeepSeekError(f"DeepSeek HTTP {resp.status_code}: {resp.text[:200]}")
+            # 上游正文可能回显凭据或用户输入；只保留状态码。
+            raise DeepSeekError(f"DeepSeek HTTP {resp.status_code}")
         try:
             data = resp.json()
             content = data["choices"][0]["message"]["content"]

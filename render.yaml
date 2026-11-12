@@ -13,3 +13,13 @@ services:
         value: /tmp/fairmeet.db
       - key: FAIRMEET_GEO
         value: fake
+      - key: FAIRMEET_DEMO
+        value: "1"
+      - key: FAIRMEET_DEMO_ACCESS_CODE
+        sync: false
+      - key: FAIRMEET_DEMO_SESSION_SECRET
+        generateValue: true
+      - key: FAIRMEET_DEMO_SECURE_COOKIE
+        value: "1"
+      - key: FAIRMEET_DEMO_AI_DAILY_LIMIT
+        value: "100"

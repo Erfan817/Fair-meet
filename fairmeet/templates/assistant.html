@@ -1,22 +1,64 @@
 {% extends "base.html" %}
 {% block title %}{{ trip.title }} · AI 协调助手{% endblock %}
+{% block body_class %}assistant-page{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="/static/research.css">
+<script src="/static/research.js" defer></script>
+{% endblock %}
 {% block content %}
-<h1>{{ trip.title }} · AI 协调助手</h1>
+<header class="page-heading"><h1>{{ trip.title }} · AI 协调助手</h1>
 <p class="hint">
   <a href="/trip/{{ trip.id }}?member={{ me.id if me else '' }}">← 旅程空间</a> ·
   <a href="/trip/{{ trip.id }}/plan?member={{ me.id if me else '' }}">行程计划</a>
-</p>
+</p><p class="page-description">把难以协调的事说出来。先看建议与影响，再由你决定是否执行。</p></header>
 
 {% if not me %}
 <div class="warning">请通过邀请链接加入后再使用协调助手。</div>
 {% else %}
-<section class="card">
+<section class="card fm-research" id="research-panel" aria-labelledby="research-heading" data-trip="{{ trip.id }}" data-member="{{ me.id }}">
+  <div class="fm-research-heading">
+    <h2 id="research-heading">资料检索</h2>
+    <span class="fm-research-badge" id="research-source-mode">正在读取可用资料来源</span>
+  </div>
+  <p class="fm-research-intro">先看资料，再决定如何安排。保存为灵感不会修改行程；真实资料可用于生成行程草案，模拟候选只用于待核实备注。所有提案都要由你确认后才会执行。</p>
+  <fieldset class="fm-research-sources" id="research-sources" aria-describedby="research-source-help">
+    <legend>本次资料来源</legend>
+    <div class="fm-research-source-list" id="research-source-list">
+      <label class="fm-research-source"><input type="radio" name="research-source" value="public_web" disabled><span><strong>公开网页搜索</strong><small>正在读取来源状态；需要明确联网授权。</small></span></label>
+      <label class="fm-research-source"><input type="radio" name="research-source" value="fake" disabled><span><strong>离线模拟资料</strong><small>模拟演示不发起真实检索。</small></span></label>
+      <label class="fm-research-source"><input type="radio" name="research-source" value="brave" disabled><span><strong>Brave 网页搜索</strong><small>待检查服务端配置；无需在此输入密钥。</small></span></label>
+    </div>
+  </fieldset>
+  <p class="fm-research-help" id="research-source-help">优先选择可用的公开网页来源；授权前不会发起检索。也可切换到无需联网授权的离线模拟资料。不可用的来源不能选择，无需在此输入密钥。</p>
+  <div class="fm-research-consent" id="research-consent-wrap" hidden>
+    <label><input type="checkbox" id="research-consent"><span>我授权将目的地城市、必要区域和泛化需求发给已选择的真实联网来源（授权范围 v1）。</span></label>
+    <p class="fm-research-help">不外发成员姓名、邀请链接、完整行程或聊天记录。可能产生服务端已配置范围内的费用；已发出的请求和费用无法保证撤回。离线模拟不使用这项授权。</p>
+  </div>
+  <p class="fm-research-feedback" id="research-settings-feedback" role="status" aria-live="polite"></p>
+  <button class="button-secondary" id="research-reload-sources" type="button" hidden>重试读取来源</button>
+  <div class="fm-research-fields">
+    <label for="research-intent">想查什么？
+      <select id="research-intent"><option value="discover">发现玩法与餐饮</option><option value="plan">为行程收集参考</option><option value="check_place">收集地点线索（不核实）</option></select>
+    </label>
+    <label for="research-scope">限定范围（选填）<input id="research-scope" maxlength="200" placeholder="例如：春熙路 / 博物馆" aria-describedby="research-scope-help"></label>
+  </div>
+  <p class="fm-research-help" id="research-scope-help">限定范围会作为公开检索词发送；不要填写个人住址、姓名或敏感需求。</p>
+  <p class="fm-research-help">在下方输入需求：“发送”只走普通聊天；“先查资料”才使用上面的来源创建检索任务。</p>
+</section>
+<div class="assistant-layout">
+<section class="card assistant-compose">
   <h2>向助手描述需求 / 提问</h2>
+  <p class="assistant-intro">可以询问当前计划的冲突，也可以提出新的安排。涉及修改的建议，会先生成提案，等待确认。</p>
   <form id="ask-form">
-    <textarea id="ask-msg" rows="3" placeholder="例如：帮我看看现在有没有冲突 / 帮我加一个第 2 天的午餐"></textarea>
-    <button type="submit">发送</button>
+    <label for="ask-msg">想和助手商量什么？</label>
+    <textarea id="ask-msg" rows="3" placeholder="例如：帮我看看现在有没有冲突 / 帮我找适合多人聚餐的资料" aria-describedby="research-input-help"></textarea>
+    <div class="fm-research-compose-actions">
+      <button type="submit">发送</button>
+      <button class="button-secondary" id="research-start" type="button" aria-controls="research-results" disabled>先查资料</button>
+    </div>
+    <p class="fm-research-help" id="research-input-help">普通聊天与资料检索分开触发。检索只提供参考，不自动安排地点。</p>
   </form>
-  <div id="ask-result" style="margin-top:.8rem"></div>
+  <div id="ask-result" role="status" aria-live="polite" aria-atomic="true"></div>
 </section>
 
 <section class="card">
@@ -33,62 +75,134 @@
           <span class="kind">{{ imp.change_kind.value }}</span>
           {% for d in imp.diffs %}<div class="note">{{ d.field }}: {{ d.before or '（空）' }} → {{ d.after or '（空）' }}</div>{% endfor %}
           {% for n in imp.impact_notes %}<div class="note">{{ n }}</div>{% endfor %}
-          {% if imp.blocked_reason %}<div class="note" style="color:#991b1b">不可执行：{{ imp.blocked_reason }}</div>{% endif %}
+          {% if imp.blocked_reason %}<div class="note conflict-hard">不可执行：{{ imp.blocked_reason }}</div>{% endif %}
         </li>
         {% endfor %}
       </ul>
       {% if p.status == 'pending' %}
       <button onclick="confirmProposal('{{ p.id }}')">确认执行</button>
-      <button onclick="rejectProposal('{{ p.id }}')" style="background:#64748b">拒绝</button>
+      <button class="button-secondary" onclick="rejectProposal('{{ p.id }}')">拒绝</button>
       {% endif %}
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="hint">暂无提案。向助手提出修改请求后，会先生成待确认提案。</p>
+  <div class="empty-state"><strong>每一次修改，先一起确认。</strong><p>暂无提案。向助手提出修改请求后，会先生成待确认提案。</p></div>
   {% endif %}
 </section>
-
+</div>
+<section class="card fm-research" id="research-results" aria-labelledby="research-results-heading" tabindex="-1" hidden>
+  <div class="fm-research-heading">
+    <h2 id="research-results-heading">本轮研究</h2>
+    <span class="fm-research-badge" id="research-run-mode"></span>
+  </div>
+  <div class="fm-research-progress">
+    <div><strong id="research-status" role="status" aria-live="polite"></strong><p class="fm-research-help" id="research-stage"></p></div>
+    <button class="button-secondary" id="research-cancel" type="button" hidden>取消检索</button>
+  </div>
+  <p class="fm-research-feedback" id="research-run-feedback" role="status" aria-live="polite"></p>
+  <div class="fm-research-actions">
+    <button class="button-secondary" id="research-retry" type="button" hidden>重试读取状态</button>
+  </div>
+  <p class="fm-research-notice" id="research-stale" hidden>旅程条件已经变化，本轮资料基于旧条件。仍可保存为灵感，请重新检索后再生成提案。</p>
+  <section class="fm-research-planner" id="research-planner" aria-labelledby="research-planner-heading" hidden>
+    <h3 id="research-planner-heading">用这些资料生成行程草案</h3>
+    <p class="fm-research-help">从公开线索中提取地点，按本地规则排出时间草案，不代表营业、票价或安全需求已核实，也不保证满足偏好与预算。先看安排与影响，确认后才修改行程。</p>
+    <button class="button-secondary" id="research-plan-open" type="button">选择天数与候选</button>
+    <div id="research-plan-fields" hidden>
+      <fieldset class="fm-research-plan-options" id="research-plan-days"><legend>选择已有天数（1–3 天）</legend></fieldset>
+      <fieldset class="fm-research-plan-options" id="research-plan-candidates"><legend>选择资料候选（1–5 个）</legend></fieldset>
+      <label class="fm-research-plan-check"><input id="research-model-consent" type="checkbox"><span>允许将选中的公开摘要或地图地点记录与目的地发送给已配置的 DeepSeek，可能消耗余额；不发送成员敏感需求。未配置时用本地规则抽取，不称为 AI 规划。</span></label>
+      <label class="fm-research-plan-check"><input id="research-geo-consent" type="checkbox"><span>允许高德核对（最多 5 个地点 + 4 段步行，可能消耗配额），将发送地点与必要坐标。</span></label>
+      <p class="fm-research-help">以上两项许可均默认关闭，与资料来源联网授权独立。等待可能需要几十秒，不会自动重试。</p>
+      <button id="research-plan-submit" type="button" disabled>生成待确认行程草案</button>
+    </div>
+    <p class="fm-research-feedback" id="research-plan-feedback" role="status" aria-live="polite"></p>
+    <div id="research-plan-output"></div>
+  </section>
+  <p class="fm-research-help" id="research-times"></p>
+  <p class="fm-research-reply" id="research-reply"></p>
+  <ul class="fm-research-errors" id="research-errors" aria-label="本轮来源问题" hidden></ul>
+  <div class="fm-research-candidates" id="research-candidates"></div>
+  <details class="fm-research-documents" id="research-documents" hidden>
+    <summary id="research-documents-summary">本轮资料依据</summary>
+    <p class="fm-research-help">正文、摘要、链接和地图地点记录分别标注；读取时间不等于发布时间，也不代表信息已核实。</p>
+    <div id="research-document-list"></div>
+  </details>
+</section>
+<noscript><div class="warning">协调助手需要 JavaScript。你仍可在行程计划中手动添加安排。</div></noscript>
 <script>
   var TRIP = {{ trip.id | tojson }};
   var MEMBER = {{ me.id | tojson }};
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  function readResponse(response) {
+    return response.json().then(function (data) {
+      if (!response.ok) {
+        throw new Error(typeof data.detail === 'string' ? data.detail : '请求未完成（' + response.status + '），请稍后重试。');
+      }
+      return data;
+    });
+  }
+  function showActionError(error) {
+    document.getElementById('ask-result').textContent = '出错：' + error.message;
+  }
 
   document.getElementById('ask-form').addEventListener('submit', function (e) {
     e.preventDefault();
+    if (document.querySelector('#ask-form button[type="submit"]').disabled) return;
     var msg = document.getElementById('ask-msg').value.trim();
     if (!msg) return;
     var box = document.getElementById('ask-result');
     box.textContent = '处理中…';
+    var sendButton = document.querySelector('#ask-form button[type="submit"]');
+    sendButton.disabled = true;
+    document.getElementById('ask-form').setAttribute('aria-busy', 'true');
+    document.dispatchEvent(new CustomEvent('fm-chat-state', {detail: {busy: true}}));
     fetch('/api/trips/' + TRIP + '/ai/chat?member_id=' + encodeURIComponent(MEMBER), {
       method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: msg})
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      var html = '<div class="card"><strong>助手：</strong><div style="white-space:pre-wrap">' + esc(d.reply) + '</div>';
+    }).then(readResponse).then(function (d) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      var heading = document.createElement('strong');
+      heading.textContent = '助手：';
+      card.appendChild(heading);
+      var reply = document.createElement('div');
+      reply.style.whiteSpace = 'pre-wrap';
+      reply.textContent = d.reply || '';
+      card.appendChild(reply);
+      function addNote(text) {
+        var note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = text;
+        card.appendChild(note);
+      }
       if (d.clarification_questions && d.clarification_questions.length) {
-        html += '<div class="note">需要补充：' + d.clarification_questions.map(esc).join('；') + '</div>';
+        addNote('需要补充：' + d.clarification_questions.join('；'));
       }
       if (d.proposals && d.proposals.length) {
-        html += '<div class="note">已生成 ' + d.proposals.length + ' 个待确认提案，请在上方确认。</div>';
+        addNote('已生成 ' + d.proposals.length + ' 个待确认提案，请在待确认提案区确认。');
       }
       if (d.sources && d.sources.length) {
-        html += '<div class="note">来源：' + d.sources.map(function(s){return esc(s.label) + '(' + esc(s.kind) + ')';}).join('，') + '</div>';
+        addNote('来源：' + d.sources.map(function(s){return String(s.label || '') + '(' + String(s.kind || '') + ')';}).join('，'));
       }
-      html += '</div>';
-      box.innerHTML = html;
+      box.replaceChildren(card);
       if (d.proposals && d.proposals.length) { setTimeout(function(){ location.reload(); }, 600); }
-    }).catch(function (err) { box.textContent = '出错：' + err; });
+    }).catch(function (err) { box.textContent = '出错：' + err; }).finally(function () {
+      sendButton.disabled = false;
+      document.getElementById('ask-form').removeAttribute('aria-busy');
+      document.dispatchEvent(new CustomEvent('fm-chat-state', {detail: {busy: false}}));
+    });
   });
 
   function confirmProposal(id) {
     fetch('/api/trips/' + TRIP + '/proposals/' + id + '/confirm?member_id=' + encodeURIComponent(MEMBER), {method: 'POST'})
-      .then(function (r) { return r.json(); }).then(function (d) {
+      .then(readResponse).then(function (d) {
         alert('已执行：' + JSON.stringify(d.executed) + (d.skipped && d.skipped.length ? ('\n跳过：' + d.skipped.length) : ''));
         location.reload();
-      });
+      }).catch(showActionError);
   }
   function rejectProposal(id) {
     fetch('/api/trips/' + TRIP + '/proposals/' + id + '/reject?member_id=' + encodeURIComponent(MEMBER), {method: 'POST'})
-      .then(function () { location.reload(); });
+      .then(readResponse).then(function () { location.reload(); }).catch(showActionError);
   }
 </script>
 {% endif %}

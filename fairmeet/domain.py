@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 def utcnow() -> str:
@@ -152,6 +152,13 @@ class InspirationCreate(BaseModel):
     note: Optional[str] = Field(default=None, max_length=2000)
     source_url: Optional[str] = Field(default=None, max_length=500)
     place_name: Optional[str] = Field(default=None, max_length=120)
+    place_id: Optional[str] = Field(default=None, max_length=80)
+
+    @model_validator(mode="after")
+    def exclusive_place(self):
+        if self.place_id and self.place_name:
+            raise ValueError("place_id 与 place_name 不能同时提供")
+        return self
 
 
 # ===========================================================================

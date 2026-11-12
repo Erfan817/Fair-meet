@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-11T14:14:51.698987+00:00",
+  "destination": "成都",
+  "uses_fixtures": false,
+  "paths": [
+    {
+      "source": "brave",
+      "status": "blocked",
+      "error_code": "missing_brave_configuration"
+    },
+    {
+      "source": "public_web",
+      "status": "blocked",
+      "error_code": "prior_verification_not_confirmed_cleared"
+    },
+    {
+      "source": "amap_poi",
+      "status": "passed",
+      "stage": "finished",
+      "search": {
+        "status": "succeeded",
+        "is_simulated": false,
+        "usage": {
+          "max_reads": 0,
+          "max_searches": 1,
+          "reads": 0,
+          "searches": 1,
+          "source_searches": {
+            "amap_poi": 1
+          }
+        },
+        "documents": [
+          {
+            "id": "66b80db6440e4760b7eaa4773a332a8b",
+            "title": "交子公园",
+            "url": "https://www.amap.com/place/B0FFHUHA9B",
+            "platform": "高德地点检索（非点评/攻略）",
+            "content_scope": "structured",
+            "fetched_at": "2026-11-11T14:24:54.012708+00:00"
+          },
+          {
+            "id": "75e8289662ca418f8c54253955ba32b6",
+            "title": "桂溪生态公园",
+            "url": "https://www.amap.com/place/B0FFH0US9N",
+            "platform": "高德地点检索（非点评/攻略）",
+            "content_scope": "structured",
+            "fetched_at": "2026-11-11T14:24:54.012784+00:00"
+          },
+          {
+            "id": "90452d7430684842a81ab4adb459f00b",
+            "title": "锦城公园",
+            "url": "https://www.amap.com/place/B0FFG86UMF",
+            "platform": "高德地点检索（非点评/攻略）",
+            "content_scope": "structured",
+            "fetched_at": "2026-11-11T14:24:54.012835+00:00"
+          },
+          {
+            "id": "666244b9a273425283f5ab050312fa41",
+            "title": "桂溪生态公园东区",
+            "url": "https://www.amap.com/place/B0FFL8CB0N",
+            "platform": "高德地点检索（非点评/攻略）",
+            "content_scope": "structured",
+            "fetched_at": "2026-11-11T14:24:54.012880+00:00"
+          },
+          {
+            "id": "eaae459f4e5b478494474ff32294b488",
+            "title": "桂溪生态公园西区",
+            "url": "https://www.amap.com/place/B0FFI3DJZT",
+            "platform": "高德地点检索（非点评/攻略）",
+            "content_scope": "structured",
+            "fetched_at": "2026-11-11T14:24:54.012927+00:00"
+          }
+        ],
+        "errors": []
+      },
+      "model": {
+        "mode": "deepseek",
+        "calls": 1,
+        "places": [
+          "交子公园",
+          "桂溪生态公园"
+        ]
+      },
+      "map": {
+        "city_requests": 3,
+        "route_requests": 1,
+        "places": [
+          {
+            "name": "交子公园",
+            "match_status": "map_matched",
+            "poi": {
+              "id": "B0FFHUHA9B",
+              "name": "交子公园",
+              "city": "成都市",
+              "address": "天府大道北段",
+              "lng": 104.072828,
+              "lat": 30.582568,
+              "category": "风景名胜;公园广场;公园",
+              "provenance": "external",
+              "source": "amap"
+            },
+            "evidence_ids": [
+              "66b80db6440e4760b7eaa4773a332a8b"
+            ]
+          },
+          {
+            "name": "桂溪生态公园",
+            "match_status": "map_matched",
+            "poi": {
+              "id": "B0FFH0US9N",
+              "name": "桂溪生态公园",
+              "city": "成都市",
+              "address": "天府一街附近",
+              "lng": 104.067314,
+              "lat": 30.563054,
+              "category": "风景名胜;公园广场;公园",
+              "provenance": "external",
+              "source": "amap"
+            },
+            "evidence_ids": [
+              "75e8289662ca418f8c54253955ba32b6"
+            ]
+          }
+        ],
+        "routes": [
+          {
+            "from_name": "交子公园",
+            "to_name": "桂溪生态公园",
+            "day_id": "9814102b7ea4478d8b6de156256def61",
+            "duration_minutes": 35,
+            "source": "amap",
+            "kind": "external",
+            "mode": "walk"
+          }
+        ],
+        "warnings": [
+          "建议时段与停留时长为估算，不代表营业时间；票价与预算尚不完整。",
+          "成员偏好尚未进行公平性评分，草案需逐人确认，不能据此宣称满足所有需求。"
+        ]
+      },
+      "execution": {
+        "before_confirm": 0,
+        "after_confirm": 2,
+        "skipped": 0,
+        "linked_places": 2,
+        "evidence_links": 2,
+        "transport_segments": 1,
+        "costs_remain_unknown": true
+      },
+      "error_code": null
+    }
+  ]
+}

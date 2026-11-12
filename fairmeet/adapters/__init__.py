@@ -39,6 +39,20 @@ class PoiResult(BaseModel):
     source: str = "amap"
 
 
+class DiscoveryPoi(BaseModel):
+    """城市文本检索的真实 POI；城市归属仍须由规划器核验。"""
+
+    id: str
+    name: str
+    city: str
+    address: str
+    lng: float
+    lat: float
+    category: Optional[str] = None
+    provenance: ProvenanceKind = ProvenanceKind.EXTERNAL
+    source: str = "amap"
+
+
 class RouteResult(BaseModel):
     distance_m: Optional[float] = None
     duration_minutes: Optional[float] = None
@@ -48,6 +62,13 @@ class RouteResult(BaseModel):
 
 class GeoUnavailable(Exception):
     """外部地理/路线服务不可用（超时/限流/无结果/未配置 Key）。上层应降级。"""
+
+
+@runtime_checkable
+class DiscoveryAdapter(Protocol):
+    """可选的真实城市 POI 检索端口，不要求离线 GeoAdapter 实现。"""
+
+    def search_city(self, city: str, keyword: str) -> list[DiscoveryPoi]: ...
 
 
 @runtime_checkable

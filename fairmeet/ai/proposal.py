@@ -36,6 +36,8 @@ class ProposalService:
         """toolbox_factory(trip_id, member_id) -> Toolbox"""
         self.db = db
         self.toolbox_factory = toolbox_factory
+        self.confirm_validator = None
+        self.execution_recorder = None
 
     def build(
         self,
@@ -99,7 +101,11 @@ class ProposalService:
             return [ChangeProposal.model_validate_json(r["payload"]) for r in cur.fetchall()]
 
     def confirm(self, proposal_id: str, member_id: str) -> dict:
-        """确认并执行提案。返回执行结果与跳过项。"""
+        """Serialize baseline checks and execution so simultaneous confirms cannot duplicate writes."""
+        with self.db.cursor():
+            return self._confirm(proposal_id, member_id)
+
+    def _confirm(self, proposal_id: str, member_id: str) -> dict:
         p = self.get(proposal_id)
         if p.status != "pending":
             raise ProposalError(f"提案状态为 {p.status}，不能确认")
@@ -109,6 +115,9 @@ class ProposalService:
             raise ProposalError("需要确认")
 
         toolbox: Toolbox = self.toolbox_factory(p.trip_id, p.member_id)
+        toolbox.authorize()
+        if self.confirm_validator is not None:
+            self.confirm_validator(p)
         executed, skipped = [], []
         for impact in p.impacts:
             if impact.blocked_reason is not None:
@@ -119,6 +128,8 @@ class ProposalService:
             except Exception as exc:  # 执行期错误：记录但不回滚已执行项（保持简单、可追溯）
                 skipped.append({"reason": str(exc), "impact": impact.model_dump(mode="json")})
 
+        if self.execution_recorder is not None:
+            self.execution_recorder(p, executed)
         p.status = "confirmed"
         self._update_status(p)
         return {"executed": executed, "skipped": skipped, "proposal": p.model_dump(mode="json")}
@@ -127,6 +138,9 @@ class ProposalService:
         p = self.get(proposal_id)
         if p.status != "pending":
             raise ProposalError(f"提案状态为 {p.status}，不能拒绝")
+        if member_id != p.member_id:
+            raise ProposalError("只有提案发起者可拒绝")
+        self.toolbox_factory(p.trip_id, member_id).authorize()
         p.status = "rejected"
         self._update_status(p)
         return p

@@ -3,17 +3,46 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#155E83">
   <title>{% block title %}FairMeet{% endblock %}</title>
+  <link rel="icon" href="/static/fairmeet-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+  {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}{% if trip is defined %} has-trip{% endif %}">
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
   <header class="topbar">
-    <a class="brand" href="/">FairMeet</a>
-    <span class="tag">完整出行规划</span>
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="FairMeet 首页"><img src="/static/fairmeet-icon.svg" width="36" height="36" alt=""><span>FairMeet</span></a>
+      <span class="tag">不同的期待，同一段旅程</span>
+      <div class="topbar-actions">
+        <a class="header-link" href="/">创建旅程</a>
+        {% if request.app.state.demo_settings is defined and request.app.state.demo_settings.enabled %}
+        <form method="post" action="/demo/logout"><button class="button-quiet" type="submit">退出演示</button></form>
+        {% endif %}
+      </div>
+    </div>
   </header>
-  <main class="container">
+  {% if request.app.state.demo_settings is defined and request.app.state.demo_settings.enabled %}
+  <aside class="site-demo-banner" aria-label="演示环境提示"><span class="status-dot" aria-hidden="true"></span><strong>演示环境</strong><span>请只使用虚构数据；服务重启后，旅程数据可能丢失。</span></aside>
+  {% endif %}
+  {% if trip is defined and not request.url.path.startswith('/join/') %}
+  {% set nav_member = request.query_params.get('member', '') %}
+  {% set member_query = '?member=' ~ (nav_member | urlencode) if nav_member else '' %}
+  <div class="workspace-header">
+    <div class="workspace-context"><span class="destination-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6"/></svg></span><div><span class="context-label">共享旅行手册</span><a href="/trip/{{ trip.id }}{{ member_query }}">{{ trip.title }}</a></div><span class="workspace-destination">{{ trip.destination }}</span></div>
+    <nav class="workspace-nav" aria-label="旅程工作台">
+      {% for suffix, label in [('', '旅程空间'), ('/plan', '行程计划'), ('/map', '地图视图'), ('/assistant', '协调助手'), ('/summary', '出发前摘要'), ('/ontrip', '途中查看'), ('/history', '变更历史')] %}
+      {% set nav_url = '/trip/' ~ trip.id ~ suffix %}
+      <a href="{{ nav_url }}{{ member_query }}"{% if request.url.path == nav_url %} class="is-active" aria-current="page"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </nav>
+  </div>
+  {% endif %}
+  <main id="main-content" class="container" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
-  <footer class="footer">阶段 B · 旅程协作基础（本机演示）</footer>
+  <footer class="footer"><a class="footer-brand" href="/">FairMeet</a><span>让每个人的期待，都在旅程里有位置。</span><span class="footer-meta">完整出行规划 · 阶段 B · 旅程协作基础（本机演示）</span></footer>
 </body>
 </html>
